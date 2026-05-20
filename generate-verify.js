@@ -331,7 +331,6 @@ const verifyTemplate = (certificatesData) => `<!DOCTYPE html>
       </div>
       
       <div style="display: flex; gap: 15px; justify-content: center;">
-        <a href="#" id="viewHtmlBtn" target="_blank" class="btn">View Certificate</a>
         <button onclick="resetSearch()" class="btn btn-secondary">Search Another</button>
       </div>
     </div>
@@ -387,9 +386,6 @@ const verifyTemplate = (certificatesData) => `<!DOCTYPE html>
         document.getElementById('resDomain').textContent = cert.domain;
         document.getElementById('resDuration').textContent = cert.duration;
         document.getElementById('resDates').textContent = formatDate(cert.start_date) + ' — ' + formatDate(cert.end_date);
-        
-        const serial = cert.certificate_no.split('/').pop();
-        document.getElementById('viewHtmlBtn').href = 'cert_' + serial + '.html';
         
         showView('successView');
       } else {
