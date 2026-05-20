@@ -66,7 +66,7 @@ const indexHtml = () => `<!DOCTYPE html>
     header {
       padding: 30px;
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       max-width: 1200px;
       width: 100%;
@@ -187,20 +187,7 @@ const indexHtml = () => `<!DOCTYPE html>
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(217, 119, 6, 0.5);
     }
-    .demo-info {
-      margin-top: 30px;
-      font-size: 11px;
-      color: #64748B;
-      text-align: left;
-      background: rgba(10, 25, 47, 0.4);
-      padding: 15px;
-      border-radius: 6px;
-      border-left: 3px solid var(--gold);
-    }
-    .demo-info code {
-      color: var(--gold-light);
-      font-size: 12px;
-    }
+
     footer {
       padding: 30px;
       text-align: center;
@@ -219,7 +206,6 @@ const indexHtml = () => `<!DOCTYPE html>
       </svg>
       <span class="logo-text">ATPS</span>
     </div>
-    <a href="/admin" class="admin-link">Admin Portal</a>
   </header>
 
   <main>
@@ -233,14 +219,6 @@ const indexHtml = () => `<!DOCTYPE html>
         </div>
         <button type="submit" class="search-btn">Verify Credential</button>
       </form>
-
-      <div class="demo-info">
-        <strong>Seeded Certificate Numbers to Test:</strong><br>
-        • <code>ATPS/2026/000001</code> (G.B.Geethika)<br>
-        • <code>ATPS/2026/000002</code> (Ramya C)<br>
-        • <code>ATPS/2026/000003</code> (M.Yuvasri)<br>
-        • <code>ATPS/2026/000004</code> (K.B. Nandhini Devi)
-      </div>
     </div>
   </main>
 
