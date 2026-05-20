@@ -655,7 +655,7 @@ const certTemplate = (data) => `<!DOCTYPE html>
       <div class="verification-block">
         <div class="verification-details">
           <div class="verif-label">Verification At</div>
-          <a class="verif-link" href="https://yoursite.com/verify?cert=${data.certificate_no}" target="_blank">yoursite.com/verify?cert=${data.certificate_no}</a>
+          <a class="verif-link" href="https://aadhira.onrender.com/verify?cert=${data.certificate_no}" target="_blank">aadhira.onrender.com/verify?cert=${data.certificate_no}</a>
           <div class="verif-label" style="margin-top: 8px; font-size: 9px; color: #888;">Place: ${data.place}</div>
           <div class="verif-label" style="font-size: 9px; color: #888;">Date: 20 May 2026</div>
         </div>
@@ -687,7 +687,7 @@ const certTemplate = (data) => `<!DOCTYPE html>
       const qrcodeEl = document.getElementById("qrcode-${data.id}");
       if (qrcodeEl) {
         new QRCode(qrcodeEl, {
-          text: "https://yoursite.com/verify?cert=${data.certificate_no}",
+          text: "https://aadhira.onrender.com/verify?cert=${data.certificate_no}",
           width: 60,
           height: 60,
           colorDark : "#0A192F",
