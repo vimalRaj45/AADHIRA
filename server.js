@@ -195,6 +195,11 @@ const indexHtml = () => `<!DOCTYPE html>
       color: #8892B0;
       letter-spacing: 0.5px;
     }
+    @media (max-width: 600px) {
+      .search-card { padding: 30px 20px; }
+      h1 { font-size: 22px; }
+      header { padding: 20px; }
+    }
   </style>
 </head>
 <body>
@@ -322,6 +327,11 @@ const verifyHtml = (certNo, student, success) => {
     .btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    @media (max-width: 600px) {
+      .card { padding: 30px 20px; }
+      h1 { font-size: 20px; }
+      .icon-container { width: 60px; height: 60px; }
     }
   </style>
 </head>
@@ -498,6 +508,14 @@ const verifyHtml = (certNo, student, success) => {
       background: rgba(255,255,255,0.1);
       color: white;
       transform: translateY(-2px);
+    }
+    @media (max-width: 600px) {
+      .card { padding: 30px 20px; }
+      h1 { font-size: 20px; }
+      .details-grid { grid-template-columns: 1fr; gap: 15px; padding: 20px; }
+      .detail-item.full-width { grid-column: span 1; }
+      .btn-group { flex-direction: column; }
+      .btn-group .btn { width: 100%; justify-content: center; }
     }
   </style>
 </head>

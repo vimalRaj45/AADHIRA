@@ -249,6 +249,15 @@ const verifyTemplate = (certificatesData) => `<!DOCTYPE html>
       background: rgba(255,255,255,0.1);
       color: white;
     }
+    @media (max-width: 600px) {
+      .card { padding: 30px 20px; }
+      h1 { font-size: 22px; }
+      header { padding: 20px; }
+      .details-grid { grid-template-columns: 1fr; gap: 15px; padding: 20px; }
+      .detail-item.full-width { grid-column: span 1; }
+      div[style*="display: flex; gap: 15px"] { flex-direction: column; gap: 10px; }
+      .btn { width: 100%; text-align: center; justify-content: center; }
+    }
   </style>
 </head>
 <body>
