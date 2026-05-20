@@ -1,0 +1,5 @@
+node_modules/
+.env
+.dist/
+*.log
+adhira-496911-6d81bb10334b.json
