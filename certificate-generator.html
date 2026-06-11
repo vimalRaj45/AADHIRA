@@ -157,6 +157,27 @@
     .modal-footer{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.06);gap:12px;flex-wrap:wrap;flex-shrink:0;}
     .modal-note{font-size:12px;color:var(--muted);}
 
+    /* HOW TO USE MODAL */
+    .help-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:99px;font-size:12.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:1.5px solid var(--gold);color:var(--gold-light);background:rgba(37,99,235,.08);transition:all .25s;margin-left:auto;}
+    .help-btn:hover{background:rgba(37,99,235,.18);transform:translateY(-1px);}
+    .howto-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;}
+    .howto-modal.open{display:flex;}
+    .howto-box{background:#0F172A;border:1px solid rgba(37,99,235,.35);border-radius:20px;width:100%;max-width:820px;max-height:92vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.5);animation:modalIn .28s ease;}
+    .howto-header{padding:26px 30px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);}
+    .howto-title{font-family:'Cinzel',serif;font-size:19px;font-weight:800;background:linear-gradient(90deg,#60A5FA,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .howto-body{padding:28px 30px 34px;}
+    .howto-intro{font-size:14px;color:#9CA3AF;margin-bottom:28px;line-height:1.8;}
+    .howto-steps{display:flex;flex-direction:column;gap:18px;}
+    .howto-step{display:flex;gap:18px;align-items:flex-start;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:18px 20px;transition:border-color .2s;}
+    .howto-step:hover{border-color:rgba(37,99,235,.4);}
+    .howto-num{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;}
+    .howto-step-content h3{font-size:14.5px;font-weight:700;color:#F1F5F9;margin-bottom:6px;}
+    .howto-step-content p{font-size:13px;color:#9CA3AF;line-height:1.7;}
+    .howto-step-content code{background:rgba(37,99,235,.15);padding:1px 7px;border-radius:4px;font-family:monospace;font-size:12px;color:#60A5FA;}
+    .howto-tip{margin-top:24px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:14px 18px;font-size:13px;color:#34D399;line-height:1.7;}
+    .howto-tip strong{color:#10B981;}
+    .howto-close{background:rgba(255,255,255,.07);border:none;color:#94A3B8;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+    .howto-close:hover{background:rgba(255,255,255,.15);color:#fff;}
     footer{padding:26px;text-align:center;font-size:12px;color:var(--muted);border-top:1px solid var(--border);}
 
     /* Hidden render container for PDF */
@@ -242,6 +263,56 @@
   </div>
 </div>
 
+<!-- HOW TO USE MODAL -->
+<div class="howto-modal" id="howtoModal" onclick="closeHowtoOnBg(event)">
+  <div class="howto-box">
+    <div class="howto-header">
+      <span class="howto-title">&#x1F4CB;&nbsp; How to Use — Bulk Certificate Generator</span>
+      <button class="howto-close" onclick="closeHowto()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="howto-body">
+      <p class="howto-intro">Generate and email personalised internship certificates in minutes. Follow these 3 simple steps below.</p>
+      <div class="howto-steps">
+
+        <div class="howto-step">
+          <div class="howto-num">1</div>
+          <div class="howto-step-content">
+            <h3>&#x1F4C2;&nbsp; Upload Student Data (CSV / Excel)</h3>
+            <p>Prepare a spreadsheet with the following <strong>required columns</strong> (column names must match exactly):<br>
+              <code>Student Name</code>&nbsp;&nbsp;<code>College Name</code>&nbsp;&nbsp;<code>Domain</code>&nbsp;&nbsp;<code>Degree</code>&nbsp;&nbsp;<code>Year</code>&nbsp;&nbsp;<code>Duration</code>&nbsp;&nbsp;<code>Start Date</code>&nbsp;&nbsp;<code>End Date</code>&nbsp;&nbsp;<code>Place</code>
+            </p>
+            <p style="margin-top:8px;">Optionally add an <code>Email</code> column to enable direct email delivery. Download the <a onclick="downloadSampleCSV()" style="color:#60A5FA;text-decoration:underline dotted;cursor:pointer;">sample CSV</a> for the exact format.</p>
+            <p style="margin-top:8px;"><strong style="color:#F59E0B;">Year column note:</strong> Enter the student's year of study (e.g. <code>1st Year</code>, <code>2nd Year</code>, <code>Final Year</code>). This will appear on the certificate alongside the Degree (e.g. <em>"B.Tech – 3rd Year"</em>).</p>
+          </div>
+        </div>
+
+        <div class="howto-step">
+          <div class="howto-num">2</div>
+          <div class="howto-step-content">
+            <h3>&#x1F3A8;&nbsp; Choose a Certificate Theme</h3>
+            <p>Select from 5 premium themes — <strong>Classic Gold</strong>, <strong>Ocean Blue</strong>, <strong>Royal Maroon</strong>, <strong>Forest Green</strong>, and <strong>Purple Royal</strong>. The layout and logos stay consistent; only the colour palette changes.</p>
+            <p style="margin-top:8px;">Click <strong>&#x1F441; Preview Certificate</strong> to see a live preview of the first student's certificate before generating all files.</p>
+          </div>
+        </div>
+
+        <div class="howto-step">
+          <div class="howto-num">3</div>
+          <div class="howto-step-content">
+            <h3>&#x1F4E5;&nbsp; Generate &amp; Download / Email</h3>
+            <p>Click <strong>Download ZIP (PDF)</strong> to generate all certificates and download them in a single ZIP file. Each PDF is named after the student.</p>
+            <p style="margin-top:8px;">If your spreadsheet has an <code>Email</code> column, you will be asked whether to <strong>send each certificate directly to the student's inbox</strong> via Brevo. Emails include the PDF as an attachment.</p>
+            <p style="margin-top:8px;">Use <strong>Generate for Event</strong> to create certificates with a custom event title instead of the default internship layout.</p>
+          </div>
+        </div>
+
+      </div>
+      <div class="howto-tip">
+        <strong>&#x1F4A1; Pro Tips:</strong> Make sure <code>Start Date</code> and <code>End Date</code> are formatted as <code>DD/MM/YYYY</code> or <code>YYYY-MM-DD</code>. The generator auto-calculates duration if the Duration column is blank. For bulk emails, ensure each student's email address is valid — invalid addresses are skipped with a warning in the logs.
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- HEADER -->
 <header data-aos="fade-down">
   <svg class="logo-icon" viewBox="0 0 120 120">
@@ -252,6 +323,9 @@
     <div class="logo-text">ATPS</div>
     <div class="logo-sub">Aadhira Training &amp; Placement Solutions</div>
   </div>
+  <button class="help-btn" id="howtoBtn" onclick="openHowto()">
+    <i class="bi bi-question-circle"></i> How to Use
+  </button>
 </header>
 
 <main>
@@ -1212,6 +1286,19 @@ function closePreviewOnBg(e) {
   if (e.target === document.getElementById('previewModal')) closePreview();
 }
 
+/* ---- HOW TO USE MODAL ---- */
+function openHowto() {
+  document.getElementById('howtoModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeHowto() {
+  document.getElementById('howtoModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeHowtoOnBg(e) {
+  if (e.target === document.getElementById('howtoModal')) closeHowto();
+}
+
 function switchPreviewTheme(btn, theme) {
   document.querySelectorAll('.tpl-pill').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
@@ -1274,15 +1361,17 @@ async function downloadPreviewPDF() {
 /* ============================================================
    SAMPLE CSV
    ============================================================ */
-document.getElementById('downloadSample').addEventListener('click', () => {
+function downloadSampleCSV() {
   const header = REQUIRED_COLS.join(',');
   const rows   = [
-    'G.B.Geethika,Valliammal College for Women,Accounting & Finance,B.Com,III Year,30 Days,21st April 2026,20th May 2026,Chennai',
-    'Neelavathi R,Valliammal College for Women,Accounting & Finance,B.Com (Accounting & Finance),III Year,1 Month,16th May 2026,16th June 2026,Chennai',
-    'Arun Kumar,PSG College of Technology,Web Development,B.E. CSE,IV Year,45 Days,1st March 2026,15th April 2026,Coimbatore',
+    'G.B.Geethika,Valliammal College for Women,Accounting & Finance,B.Com,III Year,30 Days,21st April 2026,20th May 2026,Chennai,vimalraj5207@gmail.com',
+    'Neelavathi R,Valliammal College for Women,Accounting & Finance,B.Com (Accounting & Finance),III Year,1 Month,16th May 2026,16th June 2026,Chennai,test@example.com',
+    'Arun Kumar,PSG College of Technology,Web Development,B.E. CSE,IV Year,45 Days,1st March 2026,15th April 2026,Coimbatore,test2@example.com',
   ];
   saveAs(new Blob([[header,...rows].join('\n')],{type:'text/csv'}),'ATPS_Students_Sample.csv');
-});
+}
+
+document.getElementById('downloadSample').addEventListener('click', downloadSampleCSV);
 
 /* ============================================================
    RESET
