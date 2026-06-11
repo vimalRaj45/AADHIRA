@@ -1931,8 +1931,7 @@ fastify.get('/api/last-cert-id', async (request, reply) => {
   try {
     const res = await pool.query(`
       SELECT certificate_no FROM certificates 
-      WHERE certificate_no LIKE 'ATPS/%' 
-      ORDER BY created_at DESC LIMIT 1
+      WHERE certificate_no LIKE 'ATPS/' || extract(year from current_date) || '/%'
     `);
     let maxSeq = 0;
     for (const row of res.rows) {
