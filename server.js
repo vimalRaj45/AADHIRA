@@ -1,4 +1,8 @@
 const fastify = require('fastify')({ logger: false });
+fastify.register(require('@fastify/cors'), { 
+  origin: '*',
+  methods: ['GET', 'POST']
+});
 const { Pool } = require('pg');
 const { google } = require('googleapis');
 const path = require('path');
@@ -6,7 +10,31 @@ const fs = require('fs');
 
 require('dotenv').config();
 
+fastify.register(require('@fastify/basic-auth'), {
+  validate: async function (username, password, req, reply) {
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return new Error('Unauthorized');
+    }
+  },
+  authenticate: true
+});
+
+require('dotenv').config();
+
 const connectionString = 'postgresql://neondb_owner:npg_c3Z8hrJHXGIR@ep-old-shape-apznh8mh-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+
+function getOrdinalNum(n) {
+  return n + (n > 0 ? ['th', 'st', 'nd', 'rd'][(n > 3 && n < 21) || n % 10 > 3 ? 0 : n % 10] : '');
+}
+function formatCertDate(dateInput) {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  const day = d.getDate();
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${getOrdinalNum(day)} ${month} ${year}`;
+}
 
 // Initialize PostgreSQL Pool
 const pool = new Pool({
@@ -1063,6 +1091,15 @@ fastify.get('/signature.png', async (request, reply) => {
   }
 });
 
+fastify.get('/ministry-of-micro-small-and-medium-enterprises-logo-png.png', async (request, reply) => {
+  try {
+    const buffer = fs.readFileSync(path.join(__dirname, 'ministry-of-micro-small-and-medium-enterprises-logo-png.png'));
+    reply.type('image/png').send(buffer);
+  } catch (err) {
+    reply.status(404).send('Not Found');
+  }
+});
+
 // Route: Get static landing search portal
 fastify.get('/', async (request, reply) => {
   reply.type('text/html').send(indexHtml());
@@ -1113,7 +1150,10 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       duration: row.duration,
       place: row.place,
       authorized_signatory: row.authorized_signatory,
-      signatory_designation: row.signatory_designation
+      signatory_designation: row.signatory_designation,
+      start_date_formatted: formatCertDate(row.start_date),
+      end_date_formatted: formatCertDate(row.end_date),
+      issue_date_formatted: formatCertDate(row.issue_date)
     };
 
     const htmlContent = `<!DOCTYPE html>
@@ -1305,17 +1345,17 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .logo-aadhira {
       background-position: 0% 0%;
-      width: 80px;
-      height: 80px;
+      width: 70px;
+      height: 70px;
       margin-bottom: 2px;
     }
 
     .company-subtitle {
-      font-size: 10px;
+      font-size: 24px;
       color: var(--gold);
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 3.5px;
+      letter-spacing: 2px;
       margin-top: 2px;
       margin-bottom: 6px;
     }
@@ -1330,20 +1370,26 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .logo-iso {
       background-position: 33.33% 0%;
-      width: 44px;
-      height: 44px;
+      width: 70px;
+      height: 70px;
     }
 
     .logo-arms {
       background-position: 66.66% 0%;
-      width: 44px;
-      height: 44px;
+      width: 70px;
+      height: 70px;
     }
 
     .logo-uk {
       background-position: 100% 0%;
-      width: 44px;
-      height: 44px;
+      width: 70px;
+      height: 70px;
+    }
+
+    .logo-msme {
+      height: 70px;
+      mix-blend-mode: multiply;
+      object-fit: contain;
     }
 
     .medal-container {
@@ -1367,10 +1413,10 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .title {
       font-family: 'Cinzel', serif;
-      font-size: 34px;
+      font-size: 26px;
       font-weight: 800;
       color: var(--navy);
-      letter-spacing: 4px;
+      letter-spacing: 3px;
       margin-bottom: 10px;
       position: relative;
       display: inline-block;
@@ -1667,10 +1713,11 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       <div class="header-branding">
         <!-- Render your corporate Aadhira Tree logo via sprite -->
         <div class="logo-sprite logo-aadhira"></div>
-        <div class="company-subtitle">Training & Placement Solutions</div>
+        <div class="company-subtitle">AADHIRA TRAINING AND PLACEMENT SOLUTIONS - CHENNAI</div>
         
         <!-- Accreditation badges horizontally aligned -->
         <div class="accreditations">
+          <img src="/ministry-of-micro-small-and-medium-enterprises-logo-png.png" class="logo-msme" title="MSME Certified" alt="MSME Logo">
           <div class="logo-sprite logo-iso" title="ISO 9001:2015 Certified"></div>
           <div class="logo-sprite logo-arms" title="International Standards Certified"></div>
           <div class="logo-sprite logo-uk" title="Euro UK Accreditation Licensed"></div>
@@ -1723,7 +1770,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         for successfully completing the <span class="highlight">${formattedData.domain} Internship Program</span> 
         conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, 
         Chennai, for a duration of <span class="highlight">${formattedData.duration}</span>, 
-        from <span class="highlight">21st April 2026</span> to <span class="highlight">20th May 2026</span>.
+        from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.
       </p>
     </div>
 
@@ -1776,7 +1823,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           <div class="verif-label">Verification At</div>
           <a class="verif-link" id="verifLinkDisplay" href="#" target="_blank">Loading...</a>
           <div class="verif-label" style="margin-top: 8px; font-size: 7px; color: #888;">Place: ${formattedData.place}</div>
-          <div class="verif-label" style="font-size: 7px; color: #888;">Date: 20 May 2026</div>
+          <div class="verif-label" style="font-size: 7px; color: #888;">Date: ${formattedData.issue_date_formatted}</div>
         </div>
         
         <div class="qrcode-container">
@@ -1839,8 +1886,18 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   }
 });
 
+// Route: Serve secure generator
+fastify.get('/generator', { onRequest: fastify.basicAuth }, async (request, reply) => {
+  try {
+    const html = fs.readFileSync(path.join(__dirname, 'certificate-generator.html'), 'utf8');
+    reply.type('text/html').send(html);
+  } catch(err) {
+    reply.status(500).send('Error loading generator HTML');
+  }
+});
+
 // Route: Get Admin Panel
-fastify.get('/admin', async (request, reply) => {
+fastify.get('/admin', { onRequest: fastify.basicAuth }, async (request, reply) => {
   const message = request.query.msg || '';
   const error = request.query.err || '';
 
@@ -1853,8 +1910,67 @@ fastify.get('/admin', async (request, reply) => {
   }
 });
 
+// Action: Get the highest certificate ID sequence
+fastify.get('/api/last-cert-id', async (request, reply) => {
+  try {
+    const res = await pool.query(`
+      SELECT certificate_no FROM certificates 
+      WHERE certificate_no LIKE 'ATPS/%' 
+      ORDER BY created_at DESC LIMIT 1
+    `);
+    let maxSeq = 0;
+    for (const row of res.rows) {
+      const parts = row.certificate_no.split('/');
+      if (parts.length === 3) {
+        const num = parseInt(parts[2], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    }
+    return reply.send({ lastIndex: maxSeq });
+  } catch (err) {
+    console.error('Error fetching last cert id:', err);
+    return reply.send({ lastIndex: 0 });
+  }
+});
+
+// Action: Bulk Store Certificates via API
+fastify.post('/api/store-certificates', async (request, reply) => {
+  const certs = request.body.certificates || [];
+  let added = 0;
+  let skipped = 0;
+  for (const c of certs) {
+    try {
+      const checkDup = await pool.query(
+        'SELECT id FROM certificates WHERE student_name = $1 AND domain = $2', 
+        [c.student_name, c.domain]
+      );
+      if (checkDup.rows.length === 0) {
+        await pool.query(`
+          INSERT INTO certificates (
+            certificate_no, student_name, college_name, degree, domain, 
+            duration, start_date, end_date, issue_date, place, 
+            authorized_signatory, signatory_designation, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+        `, [
+          c.certificate_no, c.student_name, c.college_name, c.degree, c.domain,
+          c.duration, c.start_date, c.end_date, c.issue_date, c.place,
+          c.authorized_signatory || 'K. Rohini', c.signatory_designation || 'Director, ATPS'
+        ]);
+        added++;
+      } else {
+        skipped++;
+      }
+    } catch (err) {
+      console.error('Error inserting cert:', err);
+    }
+  }
+  return reply.send({ success: true, added, skipped });
+});
+
 // Action: Manual creation of certificate
-fastify.post('/admin/add', async (request, reply) => {
+fastify.post('/admin/add', { onRequest: fastify.basicAuth }, async (request, reply) => {
   const {
     certificate_no,
     student_name,
@@ -1906,7 +2022,7 @@ fastify.post('/admin/add', async (request, reply) => {
 });
 
 // Action: Sync from Google Sheets via Service Account JSON
-fastify.post('/admin/sync', async (request, reply) => {
+fastify.post('/admin/sync', { onRequest: fastify.basicAuth }, async (request, reply) => {
   const { spreadsheetId, sheetName } = request.body;
 
   if (!spreadsheetId || !sheetName) {
