@@ -846,7 +846,7 @@ async function generateCertificates() {
 
   let startCertIndex = 0;
   try {
-    const res = await fetch('http://127.0.0.1:3000/api/last-cert-id');
+    const res = await fetch('/api/last-cert-id');
     if (res.ok) {
       const data = await res.json();
       startCertIndex = data.lastIndex || 0;
@@ -900,7 +900,7 @@ async function generateCertificates() {
       issue_date: new Date().toISOString(),
       place: s['Place'] || 'Chennai'
     }));
-    const res = await fetch('http://127.0.0.1:3000/api/store-certificates', {
+    const res = await fetch('/api/store-certificates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ certificates: payloadCerts })

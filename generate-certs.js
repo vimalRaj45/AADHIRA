@@ -4,6 +4,19 @@ const { Client } = require('pg');
 
 const connectionString = 'postgresql://neondb_owner:npg_c3Z8hrJHXGIR@ep-old-shape-apznh8mh-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 
+function getOrdinalNum(n) {
+  return n + (n > 0 ? ['th', 'st', 'nd', 'rd'][(n > 3 && n < 21) || n % 10 > 3 ? 0 : n % 10] : '');
+}
+function formatCertDate(dateInput) {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  const day = d.getDate();
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${getOrdinalNum(day)} ${month} ${year}`;
+}
+
 const certTemplate = (data) => `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -193,18 +206,18 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
     .logo-aadhira {
       background-position: 0% 0%;
-      width: 80px;
-      height: 80px;
+      width: 70px;
+      height: 70px;
       margin-top: 120px;
       margin-bottom: 2px;
     }
 
     .company-subtitle {
-      font-size: 12px;
+      font-size: 24px;
       color: var(--gold);
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 3.5px;
+      letter-spacing: 2px;
       margin-top: 2px;
       margin-bottom: 6px;
     }
@@ -219,24 +232,24 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
     .logo-iso {
       background-position: 33.33% 0%;
-      width: 44px;
-      height: 44px;
+      width: 70px;
+      height: 70px;
     }
 
     .logo-arms {
       background-position: 66.66% 0%;
-      width: 44px;
-      height: 44px;
+      width: 70px;
+      height: 70px;
     }
 
     .logo-uk {
       background-position: 100% 0%;
-      width: 44px;
-      height: 44px;
+      width: 70px;
+      height: 70px;
     }
 
     .logo-msme {
-      height: 44px;
+      height: 70px;
       mix-blend-mode: multiply;
       object-fit: contain;
     }
@@ -262,10 +275,10 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
     .title {
       font-family: 'Cinzel', serif;
-      font-size: 42px;
+      font-size: 26px;
       font-weight: 800;
       color: var(--navy);
-      letter-spacing: 4px;
+      letter-spacing: 3px;
       margin-bottom: 10px;
       position: relative;
       display: inline-block;
@@ -608,7 +621,7 @@ const certTemplate = (data) => `<!DOCTYPE html>
         for successfully completing the <span class="highlight">${data.domain} Internship Program</span> 
         conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, 
         Chennai, for a duration of <span class="highlight">${data.duration}</span>, 
-        from <span class="highlight">16th May 2026</span> to <span class="highlight">16th June 2026</span>.
+        from <span class="highlight">${data.start_date_formatted}</span> to <span class="highlight">${data.end_date_formatted}</span>.
       </p>
     </div>
 
@@ -657,7 +670,7 @@ const certTemplate = (data) => `<!DOCTYPE html>
           <div class="verif-label">Verification At</div>
           <a class="verif-link" href="https://aadhira.onrender.com/verify?cert=${data.certificate_no}" target="_blank">aadhira.onrender.com/verify?cert=${data.certificate_no}</a>
           <div class="verif-label" style="margin-top: 8px; font-size: 9px; color: #888;">Place: ${data.place}</div>
-          <div class="verif-label" style="font-size: 9px; color: #888;">Date: 20 May 2026</div>
+          <div class="verif-label" style="font-size: 9px; color: #888;">Date: ${data.issue_date_formatted}</div>
         </div>
         
         <div class="qrcode-container">
@@ -725,7 +738,10 @@ async function main() {
         duration: row.duration,
         place: row.place,
         authorized_signatory: row.authorized_signatory,
-        signatory_designation: row.signatory_designation
+        signatory_designation: row.signatory_designation,
+        start_date_formatted: formatCertDate(row.start_date),
+        end_date_formatted: formatCertDate(row.end_date),
+        issue_date_formatted: formatCertDate(row.issue_date)
       };
 
       const serial = row.certificate_no.split('/').pop();
