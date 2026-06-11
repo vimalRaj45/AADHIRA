@@ -452,6 +452,8 @@ function processFile(file) {
       const normalised = raw.map(row => {
         const nr = {};
         Object.keys(row).forEach(k => { nr[k.trim()] = String(row[k] ?? '').trim(); });
+        if (nr['Start Date']) nr['Start Date'] = formatDate(nr['Start Date']);
+        if (nr['End Date']) nr['End Date'] = formatDate(nr['End Date']);
         return nr;
       });
       const missing = REQUIRED_COLS.filter(c => !Object.keys(normalised[0]).includes(c));
