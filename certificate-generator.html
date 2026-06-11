@@ -440,7 +440,7 @@ const SAMPLE_STUDENT = {
   'Student Name':'Neelavathi R','College Name':'Valliammal College for Women',
   'Domain':'Accounting & Finance','Degree':'B.Com (Accounting & Finance)',
   'Duration':'1 Month','Start Date':'16th May 2026','End Date':'16th June 2026',
-  'Year':'2026','Place':'Chennai'
+  'Year':'III Year','Place':'Chennai'
 };
 
 const THEME_LABELS = {
@@ -1277,9 +1277,9 @@ async function downloadPreviewPDF() {
 document.getElementById('downloadSample').addEventListener('click', () => {
   const header = REQUIRED_COLS.join(',');
   const rows   = [
-    'G.B.Geethika,Valliammal College for Women,Accounting & Finance,B.Com,2026,30 Days,21st April 2026,20th May 2026,Chennai',
-    'Neelavathi R,Valliammal College for Women,Accounting & Finance,B.Com (Accounting & Finance),2026,1 Month,16th May 2026,16th June 2026,Chennai',
-    'Arun Kumar,PSG College of Technology,Web Development,B.E. CSE,2026,45 Days,1st March 2026,15th April 2026,Coimbatore',
+    'G.B.Geethika,Valliammal College for Women,Accounting & Finance,B.Com,III Year,30 Days,21st April 2026,20th May 2026,Chennai',
+    'Neelavathi R,Valliammal College for Women,Accounting & Finance,B.Com (Accounting & Finance),III Year,1 Month,16th May 2026,16th June 2026,Chennai',
+    'Arun Kumar,PSG College of Technology,Web Development,B.E. CSE,IV Year,45 Days,1st March 2026,15th April 2026,Coimbatore',
   ];
   saveAs(new Blob([[header,...rows].join('\n')],{type:'text/csv'}),'ATPS_Students_Sample.csv');
 });
