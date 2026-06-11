@@ -262,7 +262,7 @@
       <div class="col-pills">
         <strong>Required columns:</strong>&nbsp;
         <code>Student Name</code> <code>College Name</code> <code>Domain</code> <code>Degree</code>
-        <code>Duration</code> <code>Start Date</code> <code>End Date</code> <code>Year</code> <code>Place</code>
+        <code>Duration</code> <code>Start Date</code> <code>End Date</code> <code>Place</code>
       </div>
 
       <div id="previewSection" style="display:none;">
@@ -404,7 +404,7 @@ const assets = {
 
 const REQUIRED_COLS = [
   'Student Name','College Name','Domain','Degree',
-  'Duration','Start Date','End Date','Year','Place'
+  'Duration','Start Date','End Date','Place'
 ];
 
 const SAMPLE_STUDENT = {
@@ -581,7 +581,7 @@ const THEMES = {
    ============================================================ */
 function buildCertHTML(student, idx, themeName, startCertIndex = 0) {
   const t = THEMES[themeName] || THEMES.classic;
-  const certNo    = `ATPS/${student['Year']||new Date().getFullYear()}/${String(startCertIndex + idx + 1).padStart(6,'0')}`;
+  const certNo    = `ATPS/${new Date().getFullYear()}/${String(startCertIndex + idx + 1).padStart(6,'0')}`;
   const startFmt  = formatDate(student['Start Date']);
   const endFmt    = formatDate(student['End Date']);
   const verifyURL = `https://aadhira.onrender.com/verify?cert=${encodeURIComponent(certNo)}`;
@@ -711,7 +711,7 @@ body{background-color:var(--bg);font-family:'Montserrat',sans-serif;display:flex
   <p class="subtitle">This internship program certificate is proudly awarded to</p>
   <div class="recipient-name">${esc(student['Student Name'])}</div>
   <p class="achievement-text">
-    from <span class="highlight">${esc(student['College Name'])}</span>, pursuing <span class="highlight">${esc(student['Degree'])}</span>,
+    from <span class="highlight">${esc(student['College Name'])}</span>, pursuing <span class="highlight">${esc(student['Degree'])}${student['Year'] ? ` (${esc(student['Year'])})` : ''}</span>,
     for successfully completing the <span class="highlight">${esc(student['Domain'])} Internship Program</span>
     conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>,
     ${esc(student['Place'])}, for a duration of <span class="highlight">${esc(student['Duration'])}</span>,
@@ -889,10 +889,10 @@ async function generateCertificates() {
   try {
     pt.innerHTML = '<i class="bi bi-hourglass-split"></i> Storing certificates in database (please wait)...';
     const payloadCerts = parsedData.map((s, idx) => ({
-      certificate_no: `ATPS/${s['Year']||new Date().getFullYear()}/${String(startCertIndex + idx + 1).padStart(6,'0')}`,
+      certificate_no: `ATPS/${new Date().getFullYear()}/${String(startCertIndex + idx + 1).padStart(6,'0')}`,
       student_name: s['Student Name'],
       college_name: s['College Name'],
-      degree: s['Degree'],
+      degree: s['Year'] ? `${s['Degree']} (${s['Year']})` : s['Degree'],
       domain: s['Domain'],
       duration: s['Duration'],
       start_date: s['Start Date'],
