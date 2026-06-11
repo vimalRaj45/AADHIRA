@@ -978,7 +978,8 @@ async function certToPDFArrayBuffer(student, idx, theme, startCertIndex = 0, cus
 
   return new Promise((resolve, reject) => {
     const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;left:-19999px;top:-9999px;width:1350px;height:850px;border:none;visibility:hidden;';
+    // Removing visibility:hidden to ensure html2canvas can render the content properly.
+    iframe.style.cssText = 'position:fixed;left:-19999px;top:-9999px;width:1350px;height:850px;border:none;z-index:-9999;opacity:1;';
     iframe.setAttribute('srcdoc', html);
     document.body.appendChild(iframe);
 
