@@ -10,16 +10,32 @@ const fs = require('fs');
 
 require('dotenv').config();
 
-fastify.register(require('@fastify/basic-auth'), {
-  validate: async function (username, password, req, reply) {
-    if (password !== process.env.ADMIN_PASSWORD) {
-      return new Error('Unauthorized');
-    }
-  },
-  authenticate: true
+fastify.register(require('@fastify/cookie'));
+fastify.register(require('@fastify/formbody'));
+
+const checkAuth = async (request, reply) => {
+  if (request.cookies.auth !== 'true') {
+    return reply.redirect('/login');
+  }
+};
+
+fastify.get('/login', async (request, reply) => {
+  try {
+    const html = fs.readFileSync(path.join(__dirname, 'login.html'), 'utf8');
+    reply.type('text/html').send(html);
+  } catch (err) {
+    reply.status(500).send('Login page not found');
+  }
 });
 
-require('dotenv').config();
+fastify.post('/login', async (request, reply) => {
+  if (request.body.password === process.env.ADMIN_PASSWORD) {
+    reply.setCookie('auth', 'true', { path: '/', httpOnly: true, maxAge: 86400 * 7 });
+    return reply.redirect('/generator');
+  } else {
+    return reply.redirect('/login?err=1');
+  }
+});
 
 const connectionString = 'postgresql://neondb_owner:npg_c3Z8hrJHXGIR@ep-old-shape-apznh8mh-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 
@@ -1887,7 +1903,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 });
 
 // Route: Serve secure generator
-fastify.get('/generator', { onRequest: fastify.basicAuth }, async (request, reply) => {
+fastify.get('/generator', { preHandler: checkAuth }, async (request, reply) => {
   try {
     const html = fs.readFileSync(path.join(__dirname, 'certificate-generator.html'), 'utf8');
     reply.type('text/html').send(html);
@@ -1897,7 +1913,7 @@ fastify.get('/generator', { onRequest: fastify.basicAuth }, async (request, repl
 });
 
 // Route: Get Admin Panel
-fastify.get('/admin', { onRequest: fastify.basicAuth }, async (request, reply) => {
+fastify.get('/admin', { preHandler: checkAuth }, async (request, reply) => {
   const message = request.query.msg || '';
   const error = request.query.err || '';
 
@@ -1970,7 +1986,7 @@ fastify.post('/api/store-certificates', async (request, reply) => {
 });
 
 // Action: Manual creation of certificate
-fastify.post('/admin/add', { onRequest: fastify.basicAuth }, async (request, reply) => {
+fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => {
   const {
     certificate_no,
     student_name,
@@ -2022,7 +2038,7 @@ fastify.post('/admin/add', { onRequest: fastify.basicAuth }, async (request, rep
 });
 
 // Action: Sync from Google Sheets via Service Account JSON
-fastify.post('/admin/sync', { onRequest: fastify.basicAuth }, async (request, reply) => {
+fastify.post('/admin/sync', { preHandler: checkAuth }, async (request, reply) => {
   const { spreadsheetId, sheetName } = request.body;
 
   if (!spreadsheetId || !sheetName) {
