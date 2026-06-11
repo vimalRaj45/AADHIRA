@@ -52,6 +52,33 @@ function formatCertDate(dateInput) {
   return `${getOrdinalNum(day)} ${month} ${year}`;
 }
 
+function parseDateForDb(dateStr) {
+  if (!dateStr) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  const cleanStr = String(dateStr).replace(/(\d+)(st|nd|rd|th)/i, '$1');
+  const d = new Date(cleanStr);
+  if (!isNaN(d.getTime())) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return null;
+}
+
+function logDbMessage(message) {
+  try {
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] ${message}\n`;
+    fs.appendFileSync(path.join(__dirname, 'database.log'), logLine);
+  } catch (err) {
+    console.error('Failed to write to database.log:', err);
+  }
+  console.log(message);
+}
+
 // Initialize PostgreSQL Pool
 const pool = new Pool({
   connectionString: connectionString,
@@ -1955,13 +1982,26 @@ fastify.post('/api/store-certificates', async (request, reply) => {
   const certs = request.body.certificates || [];
   let added = 0;
   let skipped = 0;
+  const errors = [];
+
+  logDbMessage(`Received /api/store-certificates request for ${certs.length} certificate(s).`);
+
   for (const c of certs) {
     try {
+      const parsedStartDate = parseDateForDb(c.start_date);
+      const parsedEndDate = parseDateForDb(c.end_date);
+      const parsedIssueDate = parseDateForDb(c.issue_date || new Date());
+
+      if (!parsedStartDate || !parsedEndDate) {
+        throw new Error(`Invalid date formats: start_date="${c.start_date}", end_date="${c.end_date}"`);
+      }
+
       const checkDup = await pool.query(
         'SELECT id FROM certificates WHERE student_name = $1 AND domain = $2', 
         [c.student_name, c.domain]
       );
       if (checkDup.rows.length === 0) {
+        logDbMessage(`Inserting certificate for student: ${c.student_name}, ID: ${c.certificate_no}`);
         await pool.query(`
           INSERT INTO certificates (
             certificate_no, student_name, college_name, degree, domain, 
@@ -1970,18 +2010,22 @@ fastify.post('/api/store-certificates', async (request, reply) => {
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
         `, [
           c.certificate_no, c.student_name, c.college_name, c.degree, c.domain,
-          c.duration, c.start_date, c.end_date, c.issue_date, c.place,
+          c.duration, parsedStartDate, parsedEndDate, parsedIssueDate, c.place,
           c.authorized_signatory || 'K. Rohini', c.signatory_designation || 'Director, ATPS'
         ]);
         added++;
+        logDbMessage(`Successfully stored certificate ${c.certificate_no} for ${c.student_name}.`);
       } else {
         skipped++;
+        logDbMessage(`Skipped duplicate certificate for ${c.student_name} in domain ${c.domain}.`);
       }
     } catch (err) {
-      console.error('Error inserting cert:', err);
+      const errMsg = `Error inserting certificate ${c.certificate_no || 'unknown'} for ${c.student_name || 'unknown'}: ${err.message}`;
+      logDbMessage(errMsg);
+      errors.push({ certificate_no: c.certificate_no, student_name: c.student_name, error: err.message });
     }
   }
-  return reply.send({ success: true, added, skipped });
+  return reply.send({ success: errors.length === 0, added, skipped, errors });
 });
 
 // Action: Manual creation of certificate
@@ -2008,6 +2052,10 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
       return reply.redirect('/admin?err=' + encodeURIComponent('Certificate number already exists in database!'));
     }
 
+    const parsedStartDate = parseDateForDb(start_date) || start_date;
+    const parsedEndDate = parseDateForDb(end_date) || end_date;
+    const parsedIssueDate = parseDateForDb(issue_date) || issue_date;
+
     await pool.query(`
       INSERT INTO certificates (
         certificate_no, student_name, college_name, degree, domain, 
@@ -2021,16 +2069,18 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
       degree,
       domain,
       duration,
-      start_date,
-      end_date,
-      issue_date,
+      parsedStartDate,
+      parsedEndDate,
+      parsedIssueDate,
       place,
       authorized_signatory,
       signatory_designation
     ]);
 
+    logDbMessage(`Manual creation succeeded for student: ${student_name}, ID: ${certificate_no}`);
     return reply.redirect('/admin?msg=' + encodeURIComponent('Certificate issued successfully to ' + student_name + '!'));
   } catch (err) {
+    logDbMessage(`Manual creation failed for student ${student_name || 'unknown'}: ${err.message}`);
     console.error('Error manual insert:', err);
     return reply.redirect('/admin?err=' + encodeURIComponent('Database error: ' + err.message));
   }
@@ -2082,7 +2132,12 @@ fastify.post('/admin/sync', { preHandler: checkAuth }, async (request, reply) =>
 
       const checkRes = await pool.query('SELECT id FROM certificates WHERE certificate_no = $1', [certNo]);
       
+      const parsedStartDate = parseDateForDb(startDate) || startDate;
+      const parsedEndDate = parseDateForDb(endDate) || endDate;
+      const parsedIssueDate = parseDateForDb(issueDate) || issueDate;
+
       if (checkRes.rows.length === 0) {
+        logDbMessage(`Google Sync: Inserting certificate for student: ${studentName}, ID: ${certNo}`);
         await pool.query(`
           INSERT INTO certificates (
             certificate_no, student_name, college_name, degree, domain, 
@@ -2091,11 +2146,12 @@ fastify.post('/admin/sync', { preHandler: checkAuth }, async (request, reply) =>
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         `, [
           certNo, studentName, collegeName, degree, domain,
-          duration, startDate, endDate, issueDate, place || 'Chennai',
+          duration, parsedStartDate, parsedEndDate, parsedIssueDate, place || 'Chennai',
           authSignatory || 'K. Rohini', signDesignation || 'Founder'
         ]);
         insertedCount++;
       } else {
+        logDbMessage(`Google Sync: Updating certificate for student: ${studentName}, ID: ${certNo}`);
         await pool.query(`
           UPDATE certificates SET
             student_name = $2,
@@ -2112,7 +2168,7 @@ fastify.post('/admin/sync', { preHandler: checkAuth }, async (request, reply) =>
           WHERE certificate_no = $1
         `, [
           certNo, studentName, collegeName, degree, domain,
-          duration, startDate, endDate, issueDate, place || 'Chennai',
+          duration, parsedStartDate, parsedEndDate, parsedIssueDate, place || 'Chennai',
           authSignatory || 'K. Rohini', signDesignation || 'Founder'
         ]);
         updatedCount++;

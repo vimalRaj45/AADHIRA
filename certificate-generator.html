@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
   <!-- Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -217,7 +218,7 @@
 </div>
 
 <!-- HEADER -->
-<header>
+<header data-aos="fade-down">
   <svg class="logo-icon" viewBox="0 0 120 120">
     <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="5"/>
     <path d="M60 22 L90 88 L74 88 L60 54 L46 88 L30 88 Z"/>
@@ -229,15 +230,15 @@
 </header>
 
 <main>
-  <h1 class="page-title">Bulk Certificate Generator</h1>
-  <p class="page-sub">Upload images &#8594; upload student data &#8594; choose theme &#8594; download ZIP of PDFs</p>
+  <h1 class="page-title" data-aos="fade-up" data-aos-delay="100">Bulk Certificate Generator</h1>
+  <p class="page-sub" data-aos="fade-up" data-aos-delay="150">Upload images &#8594; upload student data &#8594; choose theme &#8594; download ZIP of PDFs</p>
 
   <div id="globalAlert" class="alert"></div>
 
   <div class="steps">
 
     <!-- â•â•â• STEP 1 â•â•â• -->
-    <div class="step-card active" id="step1">
+    <div class="step-card active" id="step1" data-aos="fade-up" data-aos-delay="200">
       <div class="step-header">
         <div class="step-num">1</div>
         <div class="step-done-icon"><i class="bi bi-check-lg"></i></div>
@@ -274,7 +275,7 @@
     </div>
 
     <!-- â•â•â• STEP 2 â•â•â• -->
-    <div class="step-card" id="step2">
+    <div class="step-card" id="step2" data-aos="fade-up" data-aos-delay="250">
       <div class="step-header">
         <div class="step-num">2</div>
         <div class="step-done-icon"><i class="bi bi-check-lg"></i></div>
@@ -356,7 +357,7 @@
     </div>
 
     <!-- â•â•â• STEP 3 â•â•â• -->
-    <div class="step-card" id="step3">
+    <div class="step-card" id="step3" data-aos="fade-up" data-aos-delay="300">
       <div class="step-header">
         <div class="step-num">3</div>
         <div class="step-done-icon"><i class="bi bi-check-lg"></i></div>
@@ -598,6 +599,219 @@ function buildCertHTML(student, idx, themeName, startCertIndex = 0, customTitle 
   const sigSrc   = assets.sig   ? assets.sig   : 'signature.png';
   const msmeSrc  = assets.msme  ? assets.msme  : 'ministry-of-micro-small-and-medium-enterprises-logo-png.png';
 
+  let borderHTML = '';
+  let fontStyles = '';
+  let medalHTML = '';
+  let sealHTML = '';
+
+  if (themeName === 'classic') {
+    borderHTML = `
+      <div class="border-outer"></div><div class="border-inner"></div>
+      <div class="corner-dec corner-tl"></div><div class="corner-dec corner-tr"></div>
+      <div class="corner-dec corner-bl"></div><div class="corner-dec corner-br"></div>
+      <svg class="corner-svg svg-tl" viewBox="0 0 100 100"><path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z"/><circle cx="15" cy="15" r="4"/><path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <svg class="corner-svg svg-tr" viewBox="0 0 100 100"><path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z"/><circle cx="15" cy="15" r="4"/><path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <svg class="corner-svg svg-bl" viewBox="0 0 100 100"><path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z"/><circle cx="15" cy="15" r="4"/><path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <svg class="corner-svg svg-br" viewBox="0 0 100 100"><path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z"/><circle cx="15" cy="15" r="4"/><path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    `;
+    fontStyles = `
+      body { font-family: 'Montserrat', sans-serif; }
+      .title { font-family: 'Cinzel', serif; font-weight: 800; letter-spacing: 3px; }
+      .subtitle { font-family: 'Playfair Display', serif; font-style: italic; }
+      .recipient-name { font-family: 'Playfair Display', serif; font-weight: 700; }
+    `;
+    medalHTML = `
+      <svg viewBox="0 0 120 180" width="75" height="110">
+        <defs>
+          <linearGradient id="gg${idx}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${t.medG1}"/><stop offset="30%" stop-color="${t.medG2}"/>
+            <stop offset="70%" stop-color="${t.medG3}"/><stop offset="100%" stop-color="${t.medG4}"/>
+          </linearGradient>
+          <linearGradient id="rg1${idx}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${t.ribC1}"/><stop offset="100%" stop-color="${t.ribC2}"/>
+          </linearGradient>
+          <linearGradient id="rg2${idx}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${t.ribC3}"/><stop offset="100%" stop-color="${t.ribC4}"/>
+          </linearGradient>
+        </defs>
+        <path d="M38 70 L20 160 L50 145 L62 160 L45 70" fill="url(#rg1${idx})"/>
+        <path d="M82 70 L100 160 L70 145 L58 160 L75 70" fill="url(#rg1${idx})"/>
+        <path d="M48 70 L53 160 L65 145 L77 160 L72 70" fill="url(#rg2${idx})" opacity="0.95"/>
+        <circle cx="60" cy="60" r="40" fill="url(#gg${idx})" stroke="${t.medG4}" stroke-width="2.5" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.15))"/>
+        <circle cx="60" cy="60" r="33" fill="none" stroke="#FEF3C7" stroke-width="1.5" stroke-dasharray="2 1.5"/>
+        <polygon points="60,35 66,50 82,50 69,60 74,76 60,66 46,76 51,60 38,50 54,50" fill="#FFF" opacity="0.95"/>
+        <circle cx="60" cy="60" r="14" fill="none" stroke="${t.medG3}" stroke-width="1.2"/>
+      </svg>
+    `;
+    sealHTML = `
+      <svg viewBox="0 0 120 120" width="95" height="95">
+        <defs>
+          <linearGradient id="sg${idx}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${t.sealC1}"/><stop offset="50%" stop-color="${t.sealC2}"/><stop offset="100%" stop-color="${t.sealC3}"/>
+          </linearGradient>
+        </defs>
+        <circle cx="60" cy="60" r="54" fill="none" stroke="url(#sg${idx})" stroke-width="3"/>
+        <circle cx="60" cy="60" r="48" fill="none" stroke="url(#sg${idx})" stroke-width="1.5" stroke-dasharray="3 1.5"/>
+        <circle cx="60" cy="60" r="40" fill="none" stroke="url(#sg${idx})" stroke-width="1"/>
+        <path id="stp${idx}" d="M60 18 A42 42 0 0 1 102 60 A42 42 0 0 1 60 102 A42 42 0 0 1 18 60 A42 42 0 0 1 60 18 Z" fill="none"/>
+        <text fill="url(#sg${idx})" font-family="'Montserrat',sans-serif" font-size="6.8" font-weight="700" letter-spacing=".8">
+          <textPath href="#stp${idx}" startOffset="0%">&#8226; AADHIRA TRAINING &amp; PLACEMENT SOLUTIONS &#8226; ATPS &#8226;</textPath>
+        </text>
+        <path d="M60 38 L72 72 L48 72 Z" fill="none" stroke="url(#sg${idx})" stroke-width="2"/>
+        <circle cx="60" cy="60" r="7" fill="none" stroke="url(#sg${idx})" stroke-width="1.2"/>
+        <path d="M60 25 L62 30 L67 30 L63 33 L65 38 L60 35 L55 38 L57 33 L53 30 L58 30 Z" fill="url(#sg${idx})"/>
+        <text x="60" y="87" text-anchor="middle" fill="url(#sg${idx})" font-family="'Montserrat',sans-serif" font-size="7.5" font-weight="800" letter-spacing="1">CHENNAI</text>
+      </svg>
+    `;
+  } else if (themeName === 'blue') {
+    borderHTML = `
+      <div class="border-outer" style="border: 3px solid ${t.outerBorder}; top: 20px; left: 20px; right: 20px; bottom: 20px;"></div>
+      <div class="border-inner" style="border: 1px solid ${t.innerBorder}; top: 26px; left: 26px; right: 26px; bottom: 26px;"></div>
+      <div style="position: absolute; top: 12px; left: 12px; width: 30px; height: 30px; border-left: 2px solid ${t.cornerColor}; border-top: 2px solid ${t.cornerColor};"></div>
+      <div style="position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-right: 2px solid ${t.cornerColor}; border-top: 2px solid ${t.cornerColor};"></div>
+      <div style="position: absolute; bottom: 12px; left: 12px; width: 30px; height: 30px; border-left: 2px solid ${t.cornerColor}; border-bottom: 2px solid ${t.cornerColor};"></div>
+      <div style="position: absolute; bottom: 12px; right: 12px; width: 30px; height: 30px; border-right: 2px solid ${t.cornerColor}; border-bottom: 2px solid ${t.cornerColor};"></div>
+    `;
+    fontStyles = `
+      body { font-family: 'Outfit', sans-serif; }
+      .title { font-family: 'Outfit', sans-serif; font-weight: 800; letter-spacing: 2px; }
+      .subtitle { font-family: 'Outfit', sans-serif; font-style: normal; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
+      .recipient-name { font-family: 'Outfit', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    `;
+    medalHTML = `
+      <svg viewBox="0 0 100 100" width="70" height="70" style="margin-top: 10px;">
+        <polygon points="50,5 95,50 50,95 5,50" fill="none" stroke="${t.outerBorder}" stroke-width="3"/>
+        <polygon points="50,12 88,50 50,88 12,50" fill="${t.medG2}" opacity="0.2"/>
+        <polygon points="50,20 80,50 50,80 20,50" fill="${t.outerBorder}"/>
+        <text x="50" y="54" text-anchor="middle" fill="#FFF" font-family="'Outfit',sans-serif" font-size="12" font-weight="800">ATPS</text>
+      </svg>
+    `;
+    sealHTML = `
+      <svg viewBox="0 0 100 100" width="85" height="85">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="${t.outerBorder}" stroke-width="2"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="${t.innerBorder}" stroke-width="1" stroke-dasharray="4 2"/>
+        <text x="50" y="44" text-anchor="middle" fill="${t.outerBorder}" font-family="'Outfit',sans-serif" font-size="7" font-weight="700" letter-spacing="0.5">VERIFIED</text>
+        <path d="M 25 50 L 45 70 L 75 35" fill="none" stroke="${t.outerBorder}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="50" y="82" text-anchor="middle" fill="${t.innerBorder}" font-family="'Outfit',sans-serif" font-size="6" font-weight="600" letter-spacing="1">CHENNAI</text>
+      </svg>
+    `;
+  } else if (themeName === 'maroon') {
+    borderHTML = `
+      <div class="border-outer" style="border: 12px double ${t.outerBorder}; top: 15px; left: 15px; right: 15px; bottom: 15px;"></div>
+      <div class="border-inner" style="border: 1px solid ${t.innerBorder}; top: 32px; left: 32px; right: 32px; bottom: 32px;"></div>
+      <div style="position: absolute; top: 38px; left: 38px; font-family: Georgia, serif; font-size: 24px; color: ${t.cornerColor}; line-height: 1; pointer-events: none;">✦</div>
+      <div style="position: absolute; top: 38px; right: 38px; font-family: Georgia, serif; font-size: 24px; color: ${t.cornerColor}; line-height: 1; pointer-events: none;">✦</div>
+      <div style="position: absolute; bottom: 38px; left: 38px; font-family: Georgia, serif; font-size: 24px; color: ${t.cornerColor}; line-height: 1; pointer-events: none;">✦</div>
+      <div style="position: absolute; bottom: 38px; right: 38px; font-family: Georgia, serif; font-size: 24px; color: ${t.cornerColor}; line-height: 1; pointer-events: none;">✦</div>
+    `;
+    fontStyles = `
+      body { font-family: 'Playfair Display', serif; }
+      .title { font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 2px; }
+      .subtitle { font-family: 'Playfair Display', serif; font-style: italic; }
+      .recipient-name { font-family: 'Great Vibes', cursive; font-size: 54px; font-weight: 400; }
+      .achievement-text { font-family: 'Playfair Display', serif; font-size: 17px; line-height: 1.8; }
+    `;
+    medalHTML = `
+      <svg viewBox="0 0 100 100" width="75" height="75" style="margin-top: 5px;">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="${t.outerBorder}" stroke-width="3"/>
+        <path d="M 25 40 L 50 20 L 75 40 L 75 70 L 25 70 Z" fill="${t.medG2}" opacity="0.15" stroke="${t.outerBorder}" stroke-width="1.5"/>
+        <path d="M 35 45 L 50 32 L 65 45 M 50 32 L 50 62" fill="none" stroke="${t.outerBorder}" stroke-width="2"/>
+        <circle cx="50" cy="50" r="10" fill="${t.medG3}"/>
+        <polygon points="50,44 52,48 57,48 53,50 55,55 50,52 45,55 47,50 43,48 48,48" fill="#FFF"/>
+      </svg>
+    `;
+    sealHTML = `
+      <svg viewBox="0 0 120 120" width="95" height="95">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="${t.outerBorder}" stroke-width="2"/>
+        <circle cx="60" cy="60" r="50" fill="none" stroke="${t.innerBorder}" stroke-width="1"/>
+        <path id="stp_maroon${idx}" d="M60 22 A38 38 0 0 1 98 60 A38 38 0 0 1 60 98 A38 38 0 0 1 22 60 A38 38 0 0 1 60 22 Z" fill="none"/>
+        <text fill="${t.outerBorder}" font-family="Georgia, serif" font-size="7" font-weight="700">
+          <textPath href="#stp_maroon${idx}" startOffset="0%">* ATPS ACADEMIC EXCELLENCE * CHENNAI *</textPath>
+        </text>
+        <path d="M 45 55 L 60 40 L 75 55 M 60 40 L 60 75" fill="none" stroke="${t.outerBorder}" stroke-width="1.5"/>
+        <circle cx="60" cy="60" r="4" fill="${t.innerBorder}"/>
+      </svg>
+    `;
+  } else if (themeName === 'forest') {
+    borderHTML = `
+      <div class="border-outer" style="border: 6px solid ${t.outerBorder}; top: 18px; left: 18px; right: 18px; bottom: 18px;"></div>
+      <div class="border-inner" style="border: 2px dotted ${t.innerBorder}; top: 28px; left: 28px; right: 28px; bottom: 28px;"></div>
+      <div style="position: absolute; top: 32px; left: 32px; width: 12px; height: 12px; background: ${t.cornerColor}; border-radius: 50%;"></div>
+      <div style="position: absolute; top: 32px; right: 32px; width: 12px; height: 12px; background: ${t.cornerColor}; border-radius: 50%;"></div>
+      <div style="position: absolute; bottom: 32px; left: 32px; width: 12px; height: 12px; background: ${t.cornerColor}; border-radius: 50%;"></div>
+      <div style="position: absolute; bottom: 32px; right: 32px; width: 12px; height: 12px; background: ${t.cornerColor}; border-radius: 50%;"></div>
+    `;
+    fontStyles = `
+      body { font-family: 'Montserrat', sans-serif; }
+      .title { font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: 2px; }
+      .subtitle { font-family: 'Playfair Display', serif; font-style: italic; }
+      .recipient-name { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic; }
+    `;
+    medalHTML = `
+      <svg viewBox="0 0 100 100" width="75" height="75" style="margin-top: 5px;">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="${t.outerBorder}" stroke-width="2"/>
+        <path d="M 25 50 Q 35 25 50 25 Q 65 25 75 50 Q 65 75 50 75 Q 35 75 25 50 Z" fill="none" stroke="${t.innerBorder}" stroke-width="1.5"/>
+        <path d="M 30 50 Q 40 35 50 35 Q 60 35 70 50" fill="none" stroke="${t.outerBorder}" stroke-width="2"/>
+        <circle cx="50" cy="50" r="8" fill="${t.outerBorder}"/>
+      </svg>
+    `;
+    sealHTML = `
+      <svg viewBox="0 0 100 100" width="85" height="85">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="${t.outerBorder}" stroke-width="2"/>
+        <path d="M 50 20 C 35 35 35 65 50 80 C 65 65 65 35 50 20 Z" fill="none" stroke="${t.innerBorder}" stroke-width="1.5"/>
+        <path d="M 50 20 L 50 80" fill="none" stroke="${t.innerBorder}" stroke-width="1"/>
+        <circle cx="50" cy="50" r="14" fill="${t.outerBorder}"/>
+        <text x="50" y="53" text-anchor="middle" fill="#FFF" font-family="'Montserrat',sans-serif" font-size="8" font-weight="700">ATPS</text>
+      </svg>
+    `;
+  } else if (themeName === 'purple') {
+    borderHTML = `
+      <div class="border-outer" style="border: 8px solid ${t.outerBorder}; top: 15px; left: 15px; right: 15px; bottom: 15px;"></div>
+      <div class="border-inner" style="border: 2px solid ${t.innerBorder}; top: 28px; left: 28px; right: 28px; bottom: 28px;"></div>
+      <div style="position: absolute; border: 1px solid ${t.innerBorder}; top: 34px; left: 34px; right: 34px; bottom: 34px; pointer-events: none;"></div>
+      <div class="corner-dec corner-tl" style="top: 25px; left: 25px; border-color: ${t.cornerColor}; border-width: 4px;"></div>
+      <div class="corner-dec corner-tr" style="top: 25px; right: 25px; border-color: ${t.cornerColor}; border-width: 4px;"></div>
+      <div class="corner-dec corner-bl" style="bottom: 25px; left: 25px; border-color: ${t.cornerColor}; border-width: 4px;"></div>
+      <div class="corner-dec corner-br" style="bottom: 25px; right: 25px; border-color: ${t.cornerColor}; border-width: 4px;"></div>
+    `;
+    fontStyles = `
+      body { font-family: 'Montserrat', sans-serif; }
+      .title { font-family: 'Cinzel', serif; font-weight: 800; letter-spacing: 2px; }
+      .subtitle { font-family: 'Playfair Display', serif; font-style: italic; }
+      .recipient-name { font-family: 'Great Vibes', cursive; font-size: 54px; font-weight: 400; }
+    `;
+    medalHTML = `
+      <svg viewBox="0 0 120 180" width="75" height="110">
+        <defs>
+          <linearGradient id="gg_purp${idx}" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${t.medG1}"/><stop offset="30%" stop-color="${t.medG2}"/>
+            <stop offset="70%" stop-color="${t.medG3}"/><stop offset="100%" stop-color="${t.medG4}"/>
+          </linearGradient>
+          <linearGradient id="rg_purp1${idx}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${t.ribC1}"/><stop offset="100%" stop-color="${t.ribC2}"/>
+          </linearGradient>
+        </defs>
+        <path d="M38 70 L20 160 L50 145 L62 160 L45 70" fill="url(#rg_purp1${idx})"/>
+        <path d="M82 70 L100 160 L70 145 L58 160 L75 70" fill="url(#rg_purp1${idx})"/>
+        <circle cx="60" cy="60" r="40" fill="url(#gg_purp${idx})" stroke="${t.medG4}" stroke-width="2"/>
+        <circle cx="60" cy="60" r="32" fill="none" stroke="#FFF" stroke-width="1.5" stroke-dasharray="2 2"/>
+        <polygon points="60,38 64,50 77,50 67,58 70,70 60,63 50,70 53,58 43,50 56,50" fill="#FFF"/>
+      </svg>
+    `;
+    sealHTML = `
+      <svg viewBox="0 0 120 120" width="95" height="95">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="${t.outerBorder}" stroke-width="3"/>
+        <circle cx="60" cy="60" r="46" fill="none" stroke="${t.innerBorder}" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <path id="stp_purp${idx}" d="M60 20 A40 40 0 0 1 100 60 A40 40 0 0 1 60 100 A40 40 0 0 1 20 60 A40 40 0 0 1 60 20 Z" fill="none"/>
+        <text fill="${t.outerBorder}" font-family="'Montserrat',sans-serif" font-size="7" font-weight="700" letter-spacing="1">
+          <textPath href="#stp_purp${idx}" startOffset="0%">* ROYAL VALIDATION SEAL * ATPS *</textPath>
+        </text>
+        <path d="M 50 65 L 60 50 L 70 65 Z" fill="${t.outerBorder}"/>
+        <circle cx="60" cy="60" r="5" fill="${t.innerBorder}"/>
+      </svg>
+    `;
+  }
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -606,12 +820,13 @@ function buildCertHTML(student, idx, themeName, startCertIndex = 0, customTitle 
 <title>Certificate of Internship - ${esc(student['Student Name'])}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Great+Vibes&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Great+Vibes&family=Montserrat:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
 <style>
 :root{--navy:${t.outerBorder};--gold:${t.innerBorder};--gold-light:${t.sealC1};--bg:${t.bodyBg};--paper:${t.certBg};}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background-color:var(--bg);font-family:'Montserrat',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+body{background-color:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+${fontStyles}
 ${isPreview ? `
 .watermark-overlay {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -645,12 +860,12 @@ ${isPreview ? `
 .logo-msme{height:70px;mix-blend-mode:multiply;object-fit:contain;}
 .medal-container{position:absolute;right:0;top:-10px;width:80px;height:100px;display:flex;justify-content:flex-end;}
 .content{text-align:center;z-index:2;position:relative;margin-top:5px;margin-bottom:5px;}
-.title{font-family:'Cinzel',serif;font-size:26px;font-weight:800;color:${t.titleColor};letter-spacing:3px;margin-bottom:10px;position:relative;display:inline-block;}
+.title{font-size:26px;color:${t.titleColor};margin-bottom:10px;position:relative;display:inline-block;}
 .title::after{content:'';position:absolute;bottom:-6px;left:15%;width:70%;height:2px;background:linear-gradient(90deg,transparent,${t.innerBorder},transparent);}
-.subtitle{font-family:'Playfair Display',serif;font-size:18px;font-style:italic;color:${t.subtitleColor};margin-bottom:20px;letter-spacing:0.5px;}
-.recipient-name{font-family:'Playfair Display',serif;font-size:44px;font-weight:700;color:${t.nameColor};margin-bottom:16px;display:inline-block;position:relative;padding:0 20px;}
+.subtitle{color:${t.subtitleColor};margin-bottom:20px;letter-spacing:0.5px;}
+.recipient-name{color:${t.nameColor};margin-bottom:16px;display:inline-block;position:relative;padding:0 20px;}
 .recipient-name::after{content:'';position:absolute;bottom:-4px;left:0;width:100%;height:2.2px;background:linear-gradient(90deg,transparent,${t.sealC1},${t.sealC2},${t.sealC1},transparent);}
-.achievement-text{font-family:'Montserrat',sans-serif;font-size:18px;color:${t.textColor};line-height:1.7;max-width:860px;margin:0 auto;font-weight:500;}
+.achievement-text{color:${t.textColor};line-height:1.7;max-width:860px;margin:0 auto;font-weight:500;}
 .highlight{font-weight:700;color:${t.hlColor};}
 .footer{display:flex;justify-content:space-between;align-items:flex-end;z-index:2;position:relative;}
 .signatory-block{width:220px;text-align:center;}
@@ -677,13 +892,7 @@ ${isPreview ? `
 <body>
 <div class="cert-container">
 ${isPreview ? '<div class="watermark-overlay">PREVIEW DOCUMENT - NOT VALID</div>' : ''}
-<div class="border-outer"></div><div class="border-inner"></div>
-<div class="corner-dec corner-tl"></div><div class="corner-dec corner-tr"></div>
-<div class="corner-dec corner-bl"></div><div class="corner-dec corner-br"></div>
-<svg class="corner-svg svg-tl" viewBox="0 0 100 100"><path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z"/><circle cx="15" cy="15" r="4"/><path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-<svg class="corner-svg svg-tr" viewBox="0 0 100 100"><path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z"/><circle cx="15" cy="15" r="4"/><path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-<svg class="corner-svg svg-bl" viewBox="0 0 100 100"><path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z"/><circle cx="15" cy="15" r="4"/><path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-<svg class="corner-svg svg-br" viewBox="0 0 100 100"><path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z"/><circle cx="15" cy="15" r="4"/><path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+${borderHTML}
 <div class="watermark"></div>
 <div class="header">
   <div class="cert-id">ID: ${certNo}</div>
@@ -698,27 +907,7 @@ ${isPreview ? '<div class="watermark-overlay">PREVIEW DOCUMENT - NOT VALID</div>
     </div>
   </div>
   <div class="medal-container">
-    <svg viewBox="0 0 120 180" width="75" height="110">
-      <defs>
-        <linearGradient id="gg${idx}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%"   stop-color="${t.medG1}"/><stop offset="30%" stop-color="${t.medG2}"/>
-          <stop offset="70%"  stop-color="${t.medG3}"/><stop offset="100%" stop-color="${t.medG4}"/>
-        </linearGradient>
-        <linearGradient id="rg1${idx}" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="${t.ribC1}"/><stop offset="100%" stop-color="${t.ribC2}"/>
-        </linearGradient>
-        <linearGradient id="rg2${idx}" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="${t.ribC3}"/><stop offset="100%" stop-color="${t.ribC4}"/>
-        </linearGradient>
-      </defs>
-      <path d="M38 70 L20 160 L50 145 L62 160 L45 70" fill="url(#rg1${idx})"/>
-      <path d="M82 70 L100 160 L70 145 L58 160 L75 70" fill="url(#rg1${idx})"/>
-      <path d="M48 70 L53 160 L65 145 L77 160 L72 70" fill="url(#rg2${idx})" opacity="0.95"/>
-      <circle cx="60" cy="60" r="40" fill="url(#gg${idx})" stroke="${t.medG4}" stroke-width="2.5" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.15))"/>
-      <circle cx="60" cy="60" r="33" fill="none" stroke="#FEF3C7" stroke-width="1.5" stroke-dasharray="2 1.5"/>
-      <polygon points="60,35 66,50 82,50 69,60 74,76 60,66 46,76 51,60 38,50 54,50" fill="#FFF" opacity="0.95"/>
-      <circle cx="60" cy="60" r="14" fill="none" stroke="${t.medG3}" stroke-width="1.2"/>
-    </svg>
+    ${medalHTML}
   </div>
 </div>
 <div class="content">
@@ -739,32 +928,17 @@ ${isPreview ? '<div class="watermark-overlay">PREVIEW DOCUMENT - NOT VALID</div>
       <img src="${sigSrc}" class="signature-img" alt="Signature of K. Rohini">
     </div>
     <div class="sign-line"></div>
+    <div class="sign-name">${esc(student['Authorized Signatory'] || 'K. Rohini')}</div>
+    <div class="sign-designation">${esc(student['Signatory Designation'] || 'Founder')}</div>
   </div>
   <div class="seal-block">
-    <svg viewBox="0 0 120 120" width="95" height="95">
-      <defs>
-        <linearGradient id="sg${idx}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${t.sealC1}"/><stop offset="50%" stop-color="${t.sealC2}"/><stop offset="100%" stop-color="${t.sealC3}"/>
-        </linearGradient>
-      </defs>
-      <circle cx="60" cy="60" r="54" fill="none" stroke="url(#sg${idx})" stroke-width="3"/>
-      <circle cx="60" cy="60" r="48" fill="none" stroke="url(#sg${idx})" stroke-width="1.5" stroke-dasharray="3 1.5"/>
-      <circle cx="60" cy="60" r="40" fill="none" stroke="url(#sg${idx})" stroke-width="1"/>
-      <path id="stp${idx}" d="M60 18 A42 42 0 0 1 102 60 A42 42 0 0 1 60 102 A42 42 0 0 1 18 60 A42 42 0 0 1 60 18 Z" fill="none"/>
-      <text fill="url(#sg${idx})" font-family="'Montserrat',sans-serif" font-size="6.8" font-weight="700" letter-spacing=".8">
-        <textPath href="#stp${idx}" startOffset="0%">&#8226; AADHIRA TRAINING &amp; PLACEMENT SOLUTIONS &#8226; ATPS &#8226;</textPath>
-      </text>
-      <path d="M60 38 L72 72 L48 72 Z" fill="none" stroke="url(#sg${idx})" stroke-width="2"/>
-      <circle cx="60" cy="60" r="7" fill="none" stroke="url(#sg${idx})" stroke-width="1.2"/>
-      <path d="M60 25 L62 30 L67 30 L63 33 L65 38 L60 35 L55 38 L57 33 L53 30 L58 30 Z" fill="url(#sg${idx})"/>
-      <text x="60" y="87" text-anchor="middle" fill="url(#sg${idx})" font-family="'Montserrat',sans-serif" font-size="7.5" font-weight="800" letter-spacing="1">CHENNAI</text>
-    </svg>
+    ${sealHTML}
   </div>
   <div class="verification-block">
     <div class="verification-details">
       <div class="verif-label">Verification At</div>
       <a class="verif-link" href="${verifyURL}" target="_blank">${verifyURL.replace('https://','')}</a>
-      <div class="verif-label" style="margin-top:8px;font-size:9px;color:${t.placeColor};">Place: ${esc(student['Place'])}</div>
+      <div class="verif-label" style="margin-top:8px;font-size:9px;color:${t.placeColor};">Place: ${esc(student['Place'] || 'Chennai')}</div>
       <div class="verif-label" style="font-size:9px;color:${t.placeColor};">Date: ${esc(endFmt)}</div>
     </div>
     <div class="qrcode-container">
@@ -842,6 +1016,24 @@ async function certToPDFArrayBuffer(student, idx, theme, startCertIndex = 0, cus
 /* ============================================================
    GENERATE ZIP OF PDFs
    ============================================================ */
+let isGenerating = false;
+
+window.addEventListener('beforeunload', function (e) {
+  if (isGenerating) {
+    e.preventDefault();
+    e.returnValue = 'Certificates are being generated. Do you really want to leave and interrupt the process?';
+    return e.returnValue;
+  }
+});
+
+// Intercept browser back button clicks while generating
+window.addEventListener('popstate', function (e) {
+  if (isGenerating) {
+    history.pushState(null, null, location.href);
+    alert('Certificate generation is currently in progress. Page navigation is disabled to prevent database sequence corruption.');
+  }
+});
+
 function promptCustomTitle() {
   const title = prompt("Enter the Event or Certificate Title:", "CERTIFICATE OF PARTICIPATION");
   if (title && title.trim() !== '') {
@@ -852,8 +1044,14 @@ function promptCustomTitle() {
 async function generateCertificates(customTitle = null) {
   if (!parsedData.length) { showAlert('Please upload student data first.','warn'); return; }
 
+  isGenerating = true;
+  // Push state to browser history to catch back navigation attempts
+  history.pushState(null, null, location.href);
+
   const btn = document.getElementById('generateBtn');
+  const ebtn = document.getElementById('generateEventBtn');
   btn.disabled = true;
+  ebtn.disabled = true;
 
   const pw = document.getElementById('progressWrap');
   const pf = document.getElementById('progressFill');
@@ -862,96 +1060,113 @@ async function generateCertificates(customTitle = null) {
   pw.classList.add('visible');
   clearAlert();
 
-  const zip   = new JSZip();
-  const total = parsedData.length;
-  let   failed = 0;
-  let   dbAdded = 0;
-  let   dbSkipped = 0;
+  try {
+    const zip   = new JSZip();
+    const total = parsedData.length;
+    let   failed = 0;
+    let   dbAdded = 0;
+    let   dbSkipped = 0;
+    let   dbErrorsList = [];
 
-  for (let i = 0; i < total; i++) {
-    const s    = parsedData[i];
-    const name = (s['Student Name'] || `student_${i+1}`)
-                  .replace(/[^a-zA-Z0-9 _.-]/g,'').trim().replace(/\s+/g,'_');
+    for (let i = 0; i < total; i++) {
+      const s    = parsedData[i];
+      const name = (s['Student Name'] || `student_${i+1}`)
+                    .replace(/[^a-zA-Z0-9 _.-]/g,'').trim().replace(/\s+/g,'_');
 
-    pt.textContent = `Rendering certificate ${i+1} of ${total}: ${s['Student Name'] || ''}`;
-    pp.textContent = Math.round(((i)/total)*100) + '%';
-    pf.style.width = Math.round(((i)/total)*100) + '%';
+      pt.textContent = `Rendering certificate ${i+1} of ${total}: ${s['Student Name'] || ''}`;
+      pp.textContent = Math.round(((i)/total)*100) + '%';
+      pf.style.width = Math.round(((i)/total)*100) + '%';
 
-    let startCertIndex = 0;
-    try {
-      const res = await fetch('/api/last-cert-id');
-      if (res.ok) {
-        const data = await res.json();
-        startCertIndex = data.lastIndex || 0;
+      let startCertIndex = 0;
+      try {
+        const res = await fetch('/api/last-cert-id');
+        if (res.ok) {
+          const data = await res.json();
+          startCertIndex = data.lastIndex || 0;
+        }
+      } catch (err) {
+        console.error('Failed to get last cert id:', err);
       }
-    } catch (err) {
-      console.error('Failed to get last cert id:', err);
+
+      const certNo = `ATPS/${new Date().getFullYear()}/${String(startCertIndex + 1).padStart(6,'0')}`;
+      const fname = `cert_${String(startCertIndex + 1).padStart(6,'0')}_${name}.pdf`;
+
+      try {
+        const pdfBuffer = await certToPDFArrayBuffer(s, 0, selectedTpl, startCertIndex, customTitle, false);
+        zip.file(fname, pdfBuffer);
+
+        // Store Immediately
+        pt.textContent = `Storing certificate ${i+1} in database...`;
+        const payloadCert = {
+          certificate_no: certNo,
+          student_name: s['Student Name'],
+          college_name: s['College Name'],
+          degree: s['Year'] ? `${s['Degree']} (${s['Year']})` : s['Degree'],
+          domain: s['Domain'],
+          duration: s['Duration'],
+          start_date: s['Start Date'],
+          end_date: s['End Date'],
+          issue_date: new Date().toISOString(),
+          place: s['Place'] || 'Chennai'
+        };
+
+        const dbRes = await fetch('/api/store-certificates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ certificates: [payloadCert] })
+        });
+        if (dbRes.ok) {
+          const data = await dbRes.json();
+          dbAdded += data.added || 0;
+          dbSkipped += data.skipped || 0;
+          if (data.errors && data.errors.length > 0) {
+            dbErrorsList.push(...data.errors);
+          }
+        }
+      } catch(e) {
+        console.warn('Failed cert', i, e);
+        failed++;
+      }
+
+      const pct = Math.round(((i+1)/total)*100);
+      pf.style.width = pct + '%';
+      pp.textContent = pct + '%';
     }
 
-    const certNo = `ATPS/${new Date().getFullYear()}/${String(startCertIndex + 1).padStart(6,'0')}`;
-    const fname = `cert_${String(startCertIndex + 1).padStart(6,'0')}_${name}.pdf`;
+    pt.textContent = 'Creating ZIP archive...';
 
-    try {
-      // Notice idx is 0 since we pass startCertIndex exactly and want startCertIndex + 0 + 1.
-      const pdfBuffer = await certToPDFArrayBuffer(s, 0, selectedTpl, startCertIndex, customTitle, false);
-      zip.file(fname, pdfBuffer);
+    const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:5 } });
+    saveAs(blob, `ATPS_Certificates_${new Date().toISOString().slice(0,10)}.zip`);
 
-      // Store Immediately
-      pt.textContent = `Storing certificate ${i+1} in database...`;
-      const payloadCert = {
-        certificate_no: certNo,
-        student_name: s['Student Name'],
-        college_name: s['College Name'],
-        degree: s['Year'] ? `${s['Degree']} (${s['Year']})` : s['Degree'],
-        domain: s['Domain'],
-        duration: s['Duration'],
-        start_date: s['Start Date'],
-        end_date: s['End Date'],
-        issue_date: new Date().toISOString(),
-        place: s['Place'] || 'Chennai'
-      };
+    pw.classList.remove('visible');
+    document.getElementById('step3').classList.add('done');
 
-      const dbRes = await fetch('/api/store-certificates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ certificates: [payloadCert] })
-      });
-      if (dbRes.ok) {
-        const data = await dbRes.json();
-        dbAdded += data.added || 0;
-        dbSkipped += data.skipped || 0;
+    let msg = failed > 0
+      ? `<i class="bi bi-exclamation-triangle-fill"></i> Downloaded ZIP: ${total - failed} PDFs succeeded, ${failed} failed.`
+      : `<i class="bi bi-check-circle-fill"></i> ${total} PDF certificate(s) generated and downloaded.`;
+    
+    if (dbAdded > 0 || dbSkipped > 0 || dbErrorsList.length > 0) {
+      msg += `<br><small style="opacity:0.9">DB Operations: Stored ${dbAdded} new, Skipped ${dbSkipped} duplicates.`;
+      if (dbErrorsList.length > 0) {
+        msg += ` Failed to store ${dbErrorsList.length} records. Check browser console for errors.`;
+        console.error('Failed database stores:', dbErrorsList);
       }
-    } catch(e) {
-      console.warn('Failed cert', i, e);
-      failed++;
+      msg += `</small>`;
+    } else {
+      msg += `<br><small style="opacity:0.9">Stored in database successfully.</small>`;
     }
 
-    const pct = Math.round(((i+1)/total)*100);
-    pf.style.width = pct + '%';
-    pp.textContent = pct + '%';
+    showAlert(msg, (failed > 0 || dbErrorsList.length > 0) ? 'warn' : 'success');
+    document.getElementById('statusMsg').textContent = `${total} PDFs ready`;
+
+  } catch (err) {
+    console.error('Error generating certificates:', err);
+    showAlert('Generation error: ' + err.message, 'error');
+  } finally {
+    isGenerating = false;
+    btn.disabled = false;
+    ebtn.disabled = false;
   }
-
-  pt.textContent = 'Creating ZIP archive...';
-
-  const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:5 } });
-  saveAs(blob, `ATPS_Certificates_${new Date().toISOString().slice(0,10)}.zip`);
-
-  pw.classList.remove('visible');
-  document.getElementById('step3').classList.add('done');
-  btn.disabled = false;
-
-  let msg = failed > 0
-    ? `<i class="bi bi-exclamation-triangle-fill"></i> Downloaded ZIP: ${total - failed} PDFs succeeded, ${failed} failed.`
-    : `<i class="bi bi-check-circle-fill"></i> ${total} PDF certificate(s) generated and downloaded.`;
-  
-  if (dbAdded > 0 || dbSkipped > 0) {
-    msg += `<br><small style="opacity:0.9">DB: Stored ${dbAdded} new, Skipped ${dbSkipped} duplicates.</small>`;
-  } else {
-    msg += `<br><small style="opacity:0.9">Stored in database successfully.</small>`;
-  }
-
-  showAlert(msg, failed > 0 ? 'warn' : 'success');
-  document.getElementById('statusMsg').textContent = `${total} PDFs ready`;
 }
 
 /* ============================================================
@@ -1083,6 +1298,18 @@ function clearAlert() {
   const el = document.getElementById('globalAlert');
   el.className = 'alert'; el.textContent = '';
 }
+</script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof AOS !== 'undefined') {
+      AOS.init({
+        duration: 800,
+        once: true,
+        easing: 'ease-out-quad'
+      });
+    }
+  });
 </script>
 </body>
 </html>
