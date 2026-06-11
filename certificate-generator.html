@@ -287,7 +287,7 @@
 
       <div class="col-pills">
         <strong>Required columns:</strong>&nbsp;
-        <code>Student Name</code> <code>College Name</code> <code>Domain</code> <code>Degree</code>
+        <code>Student Name</code> <code>College Name</code> <code>Domain</code> <code>Degree</code> <code>Year</code>
         <code>Duration</code> <code>Start Date</code> <code>End Date</code> <code>Place</code>
       </div>
 
@@ -1277,9 +1277,9 @@ async function downloadPreviewPDF() {
 document.getElementById('downloadSample').addEventListener('click', () => {
   const header = REQUIRED_COLS.join(',');
   const rows   = [
-    'G.B.Geethika,Valliammal College for Women,Accounting & Finance,B.Com,30 Days,21st April 2026,20th May 2026,2026,Chennai',
-    'Neelavathi R,Valliammal College for Women,Accounting & Finance,B.Com (Accounting & Finance),1 Month,16th May 2026,16th June 2026,2026,Chennai',
-    'Arun Kumar,PSG College of Technology,Web Development,B.E. CSE,45 Days,1st March 2026,15th April 2026,2026,Coimbatore',
+    'G.B.Geethika,Valliammal College for Women,Accounting & Finance,B.Com,2026,30 Days,21st April 2026,20th May 2026,Chennai',
+    'Neelavathi R,Valliammal College for Women,Accounting & Finance,B.Com (Accounting & Finance),2026,1 Month,16th May 2026,16th June 2026,Chennai',
+    'Arun Kumar,PSG College of Technology,Web Development,B.E. CSE,2026,45 Days,1st March 2026,15th April 2026,Coimbatore',
   ];
   saveAs(new Blob([[header,...rows].join('\n')],{type:'text/csv'}),'ATPS_Students_Sample.csv');
 });
