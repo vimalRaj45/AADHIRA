@@ -1339,7 +1339,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       height: 340px;
       pointer-events: none;
       z-index: 1;
-      opacity: 0.04;
+      opacity: 0.08;
       background-image: url('/logos.png');
       background-size: 400% 100%;
       background-position: 0% 0%;
@@ -1384,7 +1384,6 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       background-size: 400% 100%;
       background-repeat: no-repeat;
       display: inline-block;
-      mix-blend-mode: multiply;
     }
 
     .logo-aadhira {
@@ -1432,7 +1431,6 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .logo-msme {
       height: 70px;
-      mix-blend-mode: multiply;
       object-fit: contain;
     }
 
@@ -1548,7 +1546,6 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       max-width: 150px;
       max-height: 60px;
       object-fit: contain;
-      mix-blend-mode: multiply; /* Blends background color out */
     }
 
     .sign-line {
