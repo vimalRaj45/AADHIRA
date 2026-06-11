@@ -377,6 +377,9 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download ZIP (PDF)
         </button>
+        <button class="btn btn-outline" id="generateEventBtn" onclick="promptCustomTitle()" disabled>
+          <i class="bi bi-star"></i> Generate for Event
+        </button>
         <button class="btn btn-outline" onclick="resetAll()"><i class="bi bi-arrow-clockwise"></i> Reset</button>
         <span id="statusMsg" style="font-size:13px;color:var(--muted);"></span>
       </div>
@@ -465,6 +468,7 @@ function processFile(file) {
       document.getElementById('step2').classList.add('active');
       document.getElementById('step3').classList.add('active');
       document.getElementById('generateBtn').disabled = false;
+      document.getElementById('generateEventBtn').disabled = false;
       document.getElementById('modalDlBtn').disabled  = false;
       showAlert(`&#10003;  Loaded ${parsedData.length} student record(s) successfully.`,'success');
     } catch(err) { showAlert('Parse error: ' + err.message,'error'); }
@@ -581,7 +585,7 @@ const THEMES = {
 /* ============================================================
    BUILD CERTIFICATE HTML  (with BASE64 embedded images)
    ============================================================ */
-function buildCertHTML(student, idx, themeName, startCertIndex = 0) {
+function buildCertHTML(student, idx, themeName, startCertIndex = 0, customTitle = null) {
   const t = THEMES[themeName] || THEMES.classic;
   const certNo    = `ATPS/${new Date().getFullYear()}/${String(startCertIndex + idx + 1).padStart(6,'0')}`;
   const startFmt  = formatDate(student['Start Date']);
@@ -709,12 +713,12 @@ body{background-color:var(--bg);font-family:'Montserrat',sans-serif;display:flex
   </div>
 </div>
 <div class="content">
-  <h1 class="title">CERTIFICATE OF INTERNSHIP</h1>
-  <p class="subtitle">This internship program certificate is proudly awarded to</p>
+  <h1 class="title">${esc(customTitle || 'CERTIFICATE OF INTERNSHIP')}</h1>
+  <p class="subtitle">This certificate is proudly awarded to</p>
   <div class="recipient-name">${esc(student['Student Name'])}</div>
   <p class="achievement-text">
     from <span class="highlight">${esc(student['College Name'])}</span>, pursuing <span class="highlight">${esc(student['Degree'])}${student['Year'] ? ` (${esc(student['Year'])})` : ''}</span>,
-    for successfully completing the <span class="highlight">${esc(student['Domain'])} Internship Program</span>
+    for successfully completing the <span class="highlight">${esc(student['Domain'])}${customTitle ? '' : ' Internship Program'}</span>
     conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>,
     ${esc(student['Place'])}, for a duration of <span class="highlight">${esc(student['Duration'])}</span>,
     from <span class="highlight">${esc(startFmt)}</span> to <span class="highlight">${esc(endFmt)}</span>.
@@ -778,8 +782,8 @@ window.addEventListener('load',function(){
 }
 
 /* === RENDER CERTIFICATE -> PDF (html2canvas + jsPDF) === */
-async function certToPDFArrayBuffer(student, idx, theme, startCertIndex = 0) {
-  const html = buildCertHTML(student, idx, theme, startCertIndex);
+async function certToPDFArrayBuffer(student, idx, theme, startCertIndex = 0, customTitle = null) {
+  const html = buildCertHTML(student, idx, theme, startCertIndex, customTitle);
 
   return new Promise((resolve, reject) => {
     const iframe = document.createElement('iframe');
@@ -829,7 +833,14 @@ async function certToPDFArrayBuffer(student, idx, theme, startCertIndex = 0) {
 /* ============================================================
    GENERATE ZIP OF PDFs
    ============================================================ */
-async function generateCertificates() {
+function promptCustomTitle() {
+  const title = prompt("Enter the Event or Certificate Title:", "CERTIFICATE OF PARTICIPATION");
+  if (title && title.trim() !== '') {
+    generateCertificates(title.trim().toUpperCase());
+  }
+}
+
+async function generateCertificates(customTitle = null) {
   if (!parsedData.length) { showAlert('Please upload student data first.','warn'); return; }
 
   const btn = document.getElementById('generateBtn');
@@ -868,7 +879,7 @@ async function generateCertificates() {
     pf.style.width = Math.round(((i)/total)*100) + '%';
 
     try {
-      const pdfBuffer = await certToPDFArrayBuffer(s, i, selectedTpl, startCertIndex);
+      const pdfBuffer = await certToPDFArrayBuffer(s, i, selectedTpl, startCertIndex, customTitle);
       zip.file(fname, pdfBuffer);
     } catch(e) {
       console.warn('Failed cert', i, e);
