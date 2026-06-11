@@ -934,13 +934,11 @@ ${borderHTML}
   </div>
   <div class="verification-block">
     <div class="verification-details">
-      <div class="verif-label">Verification At</div>
-      <a class="verif-link" href="${verifyURL}" target="_blank">${verifyURL.replace('https://','')}</a>
-      <div class="verif-label" style="margin-top:8px;font-size:9px;color:${t.placeColor};">Place: ${esc(student['Place'] || 'Chennai')}</div>
-      <div class="verif-label" style="font-size:9px;color:${t.placeColor};">Date: ${esc(endFmt)}</div>
+      <div class="verif-label" style="font-size:10px;color:${t.placeColor};text-transform:uppercase;letter-spacing:1px;">Place: ${esc(student['Place'] || 'Chennai')}</div>
+      <div class="verif-label" style="font-size:10px;color:${t.placeColor};text-transform:uppercase;letter-spacing:1px;margin-top:6px;">Date: ${esc(endFmt)}</div>
     </div>
     <div class="qrcode-container">
-      <div id="${qrId}" style="width:60px;height:60px;"></div>
+      <div id="${qrId}" style="width:90px;height:90px;"></div>
     </div>
   </div>
 </div>
@@ -955,7 +953,7 @@ ${borderHTML}
 window.addEventListener('load',function(){
   var el=document.getElementById('${qrId}');
   if(el&&typeof QRCode!=='undefined'){
-    new QRCode(el,{text:'${verifyURL}',width:60,height:60,colorDark:'${t.outerBorder}',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.H});
+    new QRCode(el,{text:'${verifyURL}',width:90,height:90,colorDark:'${t.outerBorder}',colorLight:'#FFFFFF',correctLevel:QRCode.CorrectLevel.H});
   }
 });
 <\/script>
