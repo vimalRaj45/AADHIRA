@@ -585,7 +585,7 @@ const THEMES = {
 /* ============================================================
    BUILD CERTIFICATE HTML  (with BASE64 embedded images)
    ============================================================ */
-function buildCertHTML(student, idx, themeName, startCertIndex = 0, customTitle = null) {
+function buildCertHTML(student, idx, themeName, startCertIndex = 0, customTitle = null, isPreview = false) {
   const t = THEMES[themeName] || THEMES.classic;
   const certNo    = `ATPS/${new Date().getFullYear()}/${String(startCertIndex + idx + 1).padStart(6,'0')}`;
   const startFmt  = formatDate(student['Start Date']);
@@ -612,6 +612,14 @@ function buildCertHTML(student, idx, themeName, startCertIndex = 0, customTitle 
 :root{--navy:${t.outerBorder};--gold:${t.innerBorder};--gold-light:${t.sealC1};--bg:${t.bodyBg};--paper:${t.certBg};}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background-color:var(--bg);font-family:'Montserrat',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+${isPreview ? `
+.watermark-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  transform: rotate(-30deg); font-size: 60px; color: rgba(239, 68, 68, 0.25);
+  font-weight: 900; letter-spacing: 5px; pointer-events: none; z-index: 99;
+  white-space: nowrap; font-family: 'Montserrat', sans-serif;
+}
+` : ''}
 .cert-container{width:297mm;height:210mm;background:var(--paper);position:relative;overflow:hidden;box-shadow:0 20px 50px rgba(10,25,47,0.15);border-radius:4px;display:flex;flex-direction:column;justify-content:space-between;padding:40px;}
 .border-outer{position:absolute;top:15px;left:15px;right:15px;bottom:15px;border:8px solid ${t.outerBorder};pointer-events:none;}
 .border-inner{position:absolute;top:28px;left:28px;right:28px;bottom:28px;border:2px solid ${t.innerBorder};pointer-events:none;}
@@ -668,6 +676,7 @@ body{background-color:var(--bg);font-family:'Montserrat',sans-serif;display:flex
 </head>
 <body>
 <div class="cert-container">
+${isPreview ? '<div class="watermark-overlay">PREVIEW DOCUMENT - NOT VALID</div>' : ''}
 <div class="border-outer"></div><div class="border-inner"></div>
 <div class="corner-dec corner-tl"></div><div class="corner-dec corner-tr"></div>
 <div class="corner-dec corner-bl"></div><div class="corner-dec corner-br"></div>
@@ -717,7 +726,7 @@ body{background-color:var(--bg);font-family:'Montserrat',sans-serif;display:flex
   <p class="subtitle">This certificate is proudly awarded to</p>
   <div class="recipient-name">${esc(student['Student Name'])}</div>
   <p class="achievement-text">
-    from <span class="highlight">${esc(student['College Name'])}</span>, pursuing <span class="highlight">${esc(student['Degree'])}${student['Year'] ? ` (${esc(student['Year'])})` : ''}</span>,
+    from <span class="highlight">${esc(student['College Name'])}</span>, pursuing <span class="highlight">${esc(student['Degree'])}</span>${student['Year'] ? `, Year of Study: <span class="highlight">${esc(student['Year'])}</span>` : ''},
     for successfully completing the <span class="highlight">${esc(student['Domain'])}${customTitle ? '' : ' Internship Program'}</span>
     conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>,
     ${esc(student['Place'])}, for a duration of <span class="highlight">${esc(student['Duration'])}</span>,
@@ -782,8 +791,8 @@ window.addEventListener('load',function(){
 }
 
 /* === RENDER CERTIFICATE -> PDF (html2canvas + jsPDF) === */
-async function certToPDFArrayBuffer(student, idx, theme, startCertIndex = 0, customTitle = null) {
-  const html = buildCertHTML(student, idx, theme, startCertIndex, customTitle);
+async function certToPDFArrayBuffer(student, idx, theme, startCertIndex = 0, customTitle = null, isPreview = false) {
+  const html = buildCertHTML(student, idx, theme, startCertIndex, customTitle, isPreview);
 
   return new Promise((resolve, reject) => {
     const iframe = document.createElement('iframe');
@@ -856,35 +865,65 @@ async function generateCertificates(customTitle = null) {
   const zip   = new JSZip();
   const total = parsedData.length;
   let   failed = 0;
-
-  let startCertIndex = 0;
-  try {
-    const res = await fetch('/api/last-cert-id');
-    if (res.ok) {
-      const data = await res.json();
-      startCertIndex = data.lastIndex || 0;
-    }
-  } catch (err) {
-    console.error('Failed to get last cert id:', err);
-  }
+  let   dbAdded = 0;
+  let   dbSkipped = 0;
 
   for (let i = 0; i < total; i++) {
     const s    = parsedData[i];
     const name = (s['Student Name'] || `student_${i+1}`)
                   .replace(/[^a-zA-Z0-9 _.-]/g,'').trim().replace(/\s+/g,'_');
-    const fname = `cert_${String(startCertIndex + i + 1).padStart(6,'0')}_${name}.pdf`;
 
     pt.textContent = `Rendering certificate ${i+1} of ${total}: ${s['Student Name'] || ''}`;
     pp.textContent = Math.round(((i)/total)*100) + '%';
     pf.style.width = Math.round(((i)/total)*100) + '%';
 
+    let startCertIndex = 0;
     try {
-      const pdfBuffer = await certToPDFArrayBuffer(s, i, selectedTpl, startCertIndex, customTitle);
+      const res = await fetch('/api/last-cert-id');
+      if (res.ok) {
+        const data = await res.json();
+        startCertIndex = data.lastIndex || 0;
+      }
+    } catch (err) {
+      console.error('Failed to get last cert id:', err);
+    }
+
+    const certNo = `ATPS/${new Date().getFullYear()}/${String(startCertIndex + 1).padStart(6,'0')}`;
+    const fname = `cert_${String(startCertIndex + 1).padStart(6,'0')}_${name}.pdf`;
+
+    try {
+      // Notice idx is 0 since we pass startCertIndex exactly and want startCertIndex + 0 + 1.
+      const pdfBuffer = await certToPDFArrayBuffer(s, 0, selectedTpl, startCertIndex, customTitle, false);
       zip.file(fname, pdfBuffer);
+
+      // Store Immediately
+      pt.textContent = `Storing certificate ${i+1} in database...`;
+      const payloadCert = {
+        certificate_no: certNo,
+        student_name: s['Student Name'],
+        college_name: s['College Name'],
+        degree: s['Year'] ? `${s['Degree']} (${s['Year']})` : s['Degree'],
+        domain: s['Domain'],
+        duration: s['Duration'],
+        start_date: s['Start Date'],
+        end_date: s['End Date'],
+        issue_date: new Date().toISOString(),
+        place: s['Place'] || 'Chennai'
+      };
+
+      const dbRes = await fetch('/api/store-certificates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ certificates: [payloadCert] })
+      });
+      if (dbRes.ok) {
+        const data = await dbRes.json();
+        dbAdded += data.added || 0;
+        dbSkipped += data.skipped || 0;
+      }
     } catch(e) {
       console.warn('Failed cert', i, e);
       failed++;
-      // Still continue with remaining
     }
 
     const pct = Math.round(((i+1)/total)*100);
@@ -896,36 +935,6 @@ async function generateCertificates(customTitle = null) {
 
   const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:5 } });
   saveAs(blob, `ATPS_Certificates_${new Date().toISOString().slice(0,10)}.zip`);
-
-  let dbAdded = 0;
-  let dbSkipped = 0;
-  try {
-    pt.innerHTML = '<i class="bi bi-hourglass-split"></i> Storing certificates in database (please wait)...';
-    const payloadCerts = parsedData.map((s, idx) => ({
-      certificate_no: `ATPS/${new Date().getFullYear()}/${String(startCertIndex + idx + 1).padStart(6,'0')}`,
-      student_name: s['Student Name'],
-      college_name: s['College Name'],
-      degree: s['Year'] ? `${s['Degree']} (${s['Year']})` : s['Degree'],
-      domain: s['Domain'],
-      duration: s['Duration'],
-      start_date: s['Start Date'],
-      end_date: s['End Date'],
-      issue_date: new Date().toISOString(),
-      place: s['Place'] || 'Chennai'
-    }));
-    const res = await fetch('/api/store-certificates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ certificates: payloadCerts })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      dbAdded = data.added || 0;
-      dbSkipped = data.skipped || 0;
-    }
-  } catch (err) {
-    console.error('Failed to store to DB:', err);
-  }
 
   pw.classList.remove('visible');
   document.getElementById('step3').classList.add('done');
@@ -1017,7 +1026,7 @@ async function downloadPreviewPDF() {
   const student = previewStudent || (parsedData.length ? parsedData[0] : SAMPLE_STUDENT);
   showAlert('Generating preview PDF&#8230; please wait.','success');
   try {
-    const buf = await certToPDFArrayBuffer(student, 0, selectedTpl);
+    const buf = await certToPDFArrayBuffer(student, 0, selectedTpl, 0, null, true);
     const name = (student['Student Name'] || 'preview').replace(/[^a-zA-Z0-9 _.-]/g,'').trim().replace(/\s+/g,'_');
     saveAs(new Blob([buf], {type:'application/pdf'}), `cert_${name}.pdf`);
     clearAlert();
