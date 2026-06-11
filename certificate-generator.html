@@ -432,7 +432,7 @@ const assets = {
 };
 
 const REQUIRED_COLS = [
-  'Student Name','College Name','Domain','Degree',
+  'Student Name','College Name','Domain','Degree','Year',
   'Duration','Start Date','End Date','Place'
 ];
 
@@ -1080,7 +1080,7 @@ async function generateCertificates(customTitle = null) {
           certificate_no: certNo,
           student_name: s['Student Name'],
           college_name: s['College Name'],
-          degree: s['Year'] ? `${s['Degree']} (${s['Year']})` : s['Degree'],
+          degree: s['Year'] ? `${s['Degree']}, ${s['Year']}` : s['Degree'],
           domain: s['Domain'],
           duration: s['Duration'],
           start_date: s['Start Date'],
