@@ -217,6 +217,31 @@
   </div>
 </div>
 
+<!-- EMAIL CONFIRMATION MODAL -->
+<div class="modal-overlay" id="emailConfirmModal">
+  <div class="modal-box" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.35);">
+    <div class="modal-header" style="border-bottom: 1px solid var(--border);">
+      <span class="modal-title" style="font-family:'Cinzel',serif;font-size:17px;font-weight:700;color:var(--navy);">Send Certificates via Email?</span>
+    </div>
+    <div class="modal-body" style="background:#111827;padding:24px;color:#E5E7EB;display:block;font-family:'Outfit',sans-serif;">
+      <p style="font-size:15px;line-height:1.6;margin-bottom:12px;color:#FEF3C7;font-weight:600;">
+        &#9993; Email column detected in your spreadsheet.
+      </p>
+      <p style="font-size:14px;line-height:1.6;color:#9CA3AF;">
+        Would you like to send the generated PDF certificates directly to each student's email address using Brevo?
+      </p>
+    </div>
+    <div class="modal-footer" style="background:#111827;border-top: 1px solid rgba(255,255,255,0.06);justify-content:flex-end;gap:12px;padding:16px 24px;">
+      <button class="btn btn-outline" id="emailConfirmNoBtn" style="padding:10px 20px;font-size:12px;border: 1.5px solid rgba(255, 255, 255, 0.15);color:#9CA3AF;background:transparent;border-radius:50px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">
+        No, Only Generate
+      </button>
+      <button class="btn btn-gold" id="emailConfirmYesBtn" style="padding:10px 20px;font-size:12px;background:var(--gold);color:#fff;border:none;border-radius:50px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);">
+        Yes, Send Emails
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- HEADER -->
 <header data-aos="fade-down">
   <svg class="logo-icon" viewBox="0 0 120 120">
@@ -950,8 +975,51 @@ function promptCustomTitle() {
   }
 }
 
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+}
+
+function askSendEmails() {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('emailConfirmModal');
+    const yesBtn = document.getElementById('emailConfirmYesBtn');
+    const noBtn = document.getElementById('emailConfirmNoBtn');
+
+    modal.classList.add('open');
+
+    const handleChoice = (choice) => {
+      modal.classList.remove('open');
+      yesBtn.removeEventListener('click', onYes);
+      noBtn.removeEventListener('click', onNo);
+      resolve(choice);
+    };
+
+    function onYes() { handleChoice(true); }
+    function onNo() { handleChoice(false); }
+
+    yesBtn.addEventListener('click', onYes);
+    noBtn.addEventListener('click', onNo);
+  });
+}
+
 async function generateCertificates(customTitle = null) {
   if (!parsedData.length) { showAlert('Please upload student data first.','warn'); return; }
+
+  // Check if email column is present (case-insensitive key check)
+  const hasEmailCol = parsedData.some(row => {
+    return Object.keys(row).some(k => k.toLowerCase() === 'email' || k.toLowerCase() === 'e-mail');
+  });
+
+  let sendEmails = false;
+  if (hasEmailCol) {
+    sendEmails = await askSendEmails();
+  }
 
   isGenerating = true;
   // Push state to browser history to catch back navigation attempts
@@ -976,6 +1044,8 @@ async function generateCertificates(customTitle = null) {
     let   dbAdded = 0;
     let   dbSkipped = 0;
     let   dbErrorsList = [];
+    let   emailSentCount = 0;
+    let   emailErrorsList = [];
 
     for (let i = 0; i < total; i++) {
       const s    = parsedData[i];
@@ -1032,6 +1102,39 @@ async function generateCertificates(customTitle = null) {
             dbErrorsList.push(...data.errors);
           }
         }
+
+        // Send Email if enabled
+        if (sendEmails) {
+          const emailKey = Object.keys(s).find(k => k.toLowerCase() === 'email' || k.toLowerCase() === 'e-mail');
+          const email = emailKey ? String(s[emailKey] || '').trim() : '';
+
+          if (email) {
+            pt.textContent = `Sending email for certificate ${i+1} of ${total} to ${email}...`;
+            try {
+              const pdfBase64 = arrayBufferToBase64(pdfBuffer);
+              const emailRes = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: email,
+                  studentName: s['Student Name'],
+                  pdfBase64: pdfBase64,
+                  filename: fname,
+                  certificateNo: certNo
+                })
+              });
+              if (emailRes.ok) {
+                emailSentCount++;
+              } else {
+                const emailData = await emailRes.json();
+                emailErrorsList.push({ student: s['Student Name'], email: email, error: emailData.error });
+              }
+            } catch (emailErr) {
+              console.error('Error sending email:', emailErr);
+              emailErrorsList.push({ student: s['Student Name'], email: email, error: emailErr.message });
+            }
+          }
+        }
       } catch(e) {
         console.warn('Failed cert', i, e);
         failed++;
@@ -1065,7 +1168,16 @@ async function generateCertificates(customTitle = null) {
       msg += `<br><small style="opacity:0.9">Stored in database successfully.</small>`;
     }
 
-    showAlert(msg, (failed > 0 || dbErrorsList.length > 0) ? 'warn' : 'success');
+    if (sendEmails) {
+      msg += `<br><small style="opacity:0.9">Email Operations: Sent ${emailSentCount} email(s) successfully.`;
+      if (emailErrorsList.length > 0) {
+        msg += ` Failed to send ${emailErrorsList.length} email(s). Check browser console for errors.`;
+        console.error('Failed email sends:', emailErrorsList);
+      }
+      msg += `</small>`;
+    }
+
+    showAlert(msg, (failed > 0 || dbErrorsList.length > 0 || emailErrorsList.length > 0) ? 'warn' : 'success');
     document.getElementById('statusMsg').textContent = `${total} PDFs ready`;
 
   } catch (err) {

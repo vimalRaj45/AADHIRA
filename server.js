@@ -1,4 +1,5 @@
 const fastify = require('fastify')({ logger: false });
+const axios = require('axios');
 fastify.register(require('@fastify/cors'), { 
   origin: '*',
   methods: ['GET', 'POST']
@@ -2185,6 +2186,76 @@ fastify.post('/admin/sync', { preHandler: checkAuth }, async (request, reply) =>
       errMsg = 'Access Denied. You MUST share the Google Sheet with: adhira@adhira-496911.iam.gserviceaccount.com';
     }
     return reply.redirect('/admin?err=' + encodeURIComponent('Sync Failed: ' + errMsg));
+  }
+});
+
+// Action: Send certificate email via Brevo SMTP API
+fastify.post('/api/send-email', async (request, reply) => {
+  const { email, studentName, pdfBase64, filename, certificateNo } = request.body || {};
+
+  if (!email || !studentName || !pdfBase64) {
+    return reply.status(400).send({ success: false, error: 'Missing email, studentName, or pdfBase64' });
+  }
+
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || 'vsgrpsemail@gmail.com';
+  const senderName = process.env.BREVO_SENDER_NAME || 'Aadhira Solutions';
+
+  if (!apiKey) {
+    const errorMsg = 'BREVO_API_KEY environment variable is not defined.';
+    logDbMessage(`[Email Error] ${errorMsg}`);
+    return reply.status(500).send({ success: false, error: errorMsg });
+  }
+
+  logDbMessage(`[Email] Attempting to send certificate ${certificateNo || 'unknown'} to ${studentName} (${email})`);
+
+  try {
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+      sender: {
+        name: senderName,
+        email: senderEmail
+      },
+      to: [
+        {
+          email: email,
+          name: studentName
+        }
+      ],
+      subject: `Certificate of Internship - ${studentName}`,
+      htmlContent: `
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <p>Dear <strong>${studentName}</strong>,</p>
+            <p>Congratulations on successfully completing your internship!</p>
+            <p>Please find attached your Certificate of Internship (No. ${certificateNo || 'N/A'}) issued by <strong>Aadhira Training and Placement Solutions (ATPS)</strong>.</p>
+            <p>Warm regards,<br><strong>Aadhira Solutions Team</strong></p>
+          </body>
+        </html>
+      `,
+      attachment: [
+        {
+          content: pdfBase64,
+          name: filename || `Certificate_${studentName.replace(/\s+/g, '_')}.pdf`
+        }
+      ]
+    }, {
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    logDbMessage(`[Email Success] Certificate ${certificateNo || 'unknown'} successfully sent to ${email}. Message ID: ${response.data.messageId || 'unknown'}`);
+    return reply.send({ success: true, messageId: response.data.messageId });
+  } catch (err) {
+    let errMsg = err.message;
+    if (err.response && err.response.data) {
+      errMsg += ' - ' + JSON.stringify(err.response.data);
+    }
+    const logMsg = `[Email Error] Failed to send email to ${email} for certificate ${certificateNo || 'unknown'}: ${errMsg}`;
+    logDbMessage(logMsg);
+    return reply.status(500).send({ success: false, error: errMsg });
   }
 });
 
