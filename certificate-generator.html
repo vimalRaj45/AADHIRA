@@ -915,7 +915,7 @@ ${borderHTML}
   <p class="subtitle">This certificate is proudly awarded to</p>
   <div class="recipient-name">${esc(student['Student Name'])}</div>
   <p class="achievement-text">
-    from <span class="highlight">${esc(student['College Name'])}</span>, pursuing <span class="highlight">${esc(student['Degree'])}${student['Year'] ? ` (${esc(student['Year'])})` : ''}</span>,
+    from <span class="highlight">${esc(student['College Name'])}</span>, pursuing <span class="highlight">${esc(student['Degree'])}${student['Year'] ? `, ${esc(student['Year'])}` : ''}</span>,
     for successfully completing the <span class="highlight">${esc(student['Domain'])}${customTitle ? '' : ' Internship Program'}</span>
     conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>,
     ${esc(student['Place'])}, for a duration of <span class="highlight">${esc(student['Duration'])}</span>,
