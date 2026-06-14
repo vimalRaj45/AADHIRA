@@ -2871,14 +2871,14 @@ const adminHtml = (certificates, message = '', error = '') => {
         for (let i = 0; i < parsedRows.length; i++) {
           const row = parsedRows[i];
           const certIndex    = String(lastIndex + 1 + i).padStart(6, '0');
-          const certificate_no = `ATPS/${currentYear}/${certIndex}`;
+          const certificate_no = \`ATPS/\${currentYear}/\${certIndex}\`;
 
           const cert = {
             certificate_no,
             student_name:          row.student_name,
             email:                 row.email,
             college_name:          row.college_name,
-            degree:                row.year ? `${row.degree} - ${row.year}` : row.degree,
+            degree:                row.year ? \`\${row.degree} - \${row.year}\` : row.degree,
             domain:                row.domain,
             duration:              row.duration,
             start_date:            row.start_date,
@@ -2894,13 +2894,13 @@ const adminHtml = (certificates, message = '', error = '') => {
           // Update progress bar & label
           const pct = Math.round(((i) / total) * 100);
           progressBar.style.width = pct + '%';
-          progressLabel.textContent = `${i + 1} / ${total}`;
+          progressLabel.textContent = \`\${i + 1} / \${total}\`;
 
           // Append live row log
           const logLine = document.createElement('div');
-          logLine.id = `logrow-${i}`;
+          logLine.id = \`logrow-\${i}\`;
           logLine.style.cssText = 'color: rgba(255,255,255,0.5); padding: 2px 0;';
-          logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ⏳ ${escapeHtml(row.student_name)} — <em>${escapeHtml(certificate_no)}</em> ...`;
+          logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ⏳ \${escapeHtml(row.student_name)} — <em>\${escapeHtml(certificate_no)}</em> ...\`;
           rowLog.appendChild(logLine);
           rowLog.scrollTop = rowLog.scrollHeight;
 
@@ -2915,20 +2915,20 @@ const adminHtml = (certificates, message = '', error = '') => {
             if (res.ok && result.added > 0) {
               added++;
               logLine.style.color = '#34d399';
-              logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ✅ ${escapeHtml(row.student_name)} — <em>${escapeHtml(certificate_no)}</em> <span style="color:#6ee7b7;">Saved</span>`;
+              logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ✅ \${escapeHtml(row.student_name)} — <em>\${escapeHtml(certificate_no)}</em> <span style="color:#6ee7b7;">Saved</span>\`;
             } else if (result.skipped > 0) {
               skipped++;
               logLine.style.color = '#fbbf24';
-              logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ⚠️ ${escapeHtml(row.student_name)} — <span style="color:#fde68a;">Skipped (duplicate)</span>`;
+              logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ⚠️ \${escapeHtml(row.student_name)} — <span style="color:#fde68a;">Skipped (duplicate)</span>\`;
             } else {
               failed++;
               logLine.style.color = '#f87171';
-              logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ❌ ${escapeHtml(row.student_name)} — <span style="color:#fca5a5;">Error: ${escapeHtml((result.errors && result.errors[0]?.error) || 'Unknown')}</span>`;
+              logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ❌ \${escapeHtml(row.student_name)} — <span style="color:#fca5a5;">Error: \${escapeHtml((result.errors && result.errors[0]?.error) || 'Unknown')}</span>\`;
             }
           } catch(rowErr) {
             failed++;
             logLine.style.color = '#f87171';
-            logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ❌ ${escapeHtml(row.student_name)} — <span style="color:#fca5a5;">Network error</span>`;
+            logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ❌ \${escapeHtml(row.student_name)} — <span style="color:#fca5a5;">Network error</span>\`;
           }
 
           rowLog.scrollTop = rowLog.scrollHeight;
@@ -2936,20 +2936,20 @@ const adminHtml = (certificates, message = '', error = '') => {
 
         // Final 100%
         progressBar.style.width = '100%';
-        progressLabel.textContent = `${total} / ${total} — Done`;
+        progressLabel.textContent = \`\${total} / \${total} — Done\`;
 
         // Summary
         summaryBox.style.display = 'block';
         if (failed === 0) {
           summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35); color: #6ee7b7;';
-          summaryBox.innerHTML = `<i class="bi bi-check-circle-fill"></i> Import complete! <strong>${added}</strong> saved, <strong>${skipped}</strong> skipped (duplicates). Redirecting...`;
+          summaryBox.innerHTML = \`<i class="bi bi-check-circle-fill"></i> Import complete! <strong>\${added}</strong> saved, <strong>\${skipped}</strong> skipped (duplicates). Redirecting...\`;
           setTimeout(() => {
-            const msg = `Successfully imported ${added} certificate(s). ${skipped} skipped.`;
+            const msg = \`Successfully imported \${added} certificate(s). \${skipped} skipped.\`;
             window.location.href = '/admin?msg=' + encodeURIComponent(msg);
           }, 2200);
         } else {
           summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5;';
-          summaryBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Done with errors — <strong>${added}</strong> saved, <strong>${skipped}</strong> skipped, <strong>${failed}</strong> failed. Check the log above.`;
+          summaryBox.innerHTML = \`<i class="bi bi-exclamation-triangle-fill"></i> Done with errors — <strong>\${added}</strong> saved, <strong>\${skipped}</strong> skipped, <strong>\${failed}</strong> failed. Check the log above.\`;
           btn.disabled = false;
           btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
         }
@@ -2958,7 +2958,7 @@ const adminHtml = (certificates, message = '', error = '') => {
         console.error(err);
         summaryBox.style.display = 'block';
         summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5;';
-        summaryBox.innerHTML = `<i class="bi bi-x-circle-fill"></i> Import failed: ${escapeHtml(err.message)}`;
+        summaryBox.innerHTML = \`<i class="bi bi-x-circle-fill"></i> Import failed: \${escapeHtml(err.message)}\`;
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
       }
