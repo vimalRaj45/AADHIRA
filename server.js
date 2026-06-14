@@ -2961,6 +2961,15 @@ fastify.get('/ministry-of-micro-small-and-medium-enterprises-logo-png.png', asyn
   }
 });
 
+fastify.get('/login_bg.png', async (request, reply) => {
+  try {
+    const buffer = fs.readFileSync(path.join(__dirname, 'login_bg.png'));
+    reply.type('image/png').send(buffer);
+  } catch (err) {
+    reply.status(404).send('Not Found');
+  }
+});
+
 // Route: Get static landing search portal
 fastify.get('/', async (request, reply) => {
   reply.type('text/html').send(indexHtml());
