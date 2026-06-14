@@ -4114,6 +4114,13 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       // Force absolute positioning, scale(1), and exact pixels during snapshot to bypass mobile scale constraints
       container.setAttribute('style', 'width: 1122px !important; height: 793px !important; transform: none !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; position: relative !important;');
 
+      // Force viewport meta tag to simulate 1122px width to avoid mobile scaling/layout issues during capture
+      const metaViewport = document.querySelector('meta[name="viewport"]');
+      const originalViewport = metaViewport ? metaViewport.getAttribute('content') : '';
+      if (metaViewport) {
+        metaViewport.setAttribute('content', 'width=1122, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+      }
+
       const opt = {
         margin:       0,
         filename:     'Certificate_${formattedData.student_name.replace(/\\s+/g, '_')}.pdf',
@@ -4123,13 +4130,21 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           useCORS: true,      // Enable cross-origin resource sharing for fonts and external images
           logging: false,
           scrollY: 0,
-          scrollX: 0
+          scrollX: 0,
+          width: 1122,
+          height: 793,
+          windowWidth: 1122,
+          windowHeight: 793
         },
         jsPDF:        { unit: 'px', format: [1122, 793], hotfixes: ['px_scaling'] }
       };
 
       // Generate PDF on client-side
       html2pdf().set(opt).from(container).save().then(() => {
+        // Restore viewport meta
+        if (metaViewport && originalViewport) {
+          metaViewport.setAttribute('content', originalViewport);
+        }
         // Restore screen styles
         if (prevContainerStyle) {
           container.setAttribute('style', prevContainerStyle);
@@ -4141,6 +4156,10 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       }).catch(err => {
         console.error('PDF generation failed:', err);
         alert('Failed to generate PDF. Please try again.');
+        // Restore viewport meta
+        if (metaViewport && originalViewport) {
+          metaViewport.setAttribute('content', originalViewport);
+        }
         if (prevContainerStyle) {
           container.setAttribute('style', prevContainerStyle);
         } else {
