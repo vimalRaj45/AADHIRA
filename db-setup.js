@@ -146,6 +146,7 @@ async function main() {
         place VARCHAR(100) NOT NULL,
         authorized_signatory VARCHAR(150) NOT NULL,
         signatory_designation VARCHAR(150) NOT NULL,
+        template VARCHAR(50) DEFAULT 'classic',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -162,8 +163,8 @@ async function main() {
           INSERT INTO certificates (
             certificate_no, student_name, college_name, degree, domain, 
             duration, start_date, end_date, issue_date, place, 
-            authorized_signatory, signatory_designation
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            authorized_signatory, signatory_designation, template
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         `, [
           student.certificate_no,
           student.student_name,
@@ -176,7 +177,8 @@ async function main() {
           student.issue_date,
           student.place,
           student.authorized_signatory,
-          student.signatory_designation
+          student.signatory_designation,
+          student.template || 'classic'
         ]);
         console.log(`Inserted certificate ${student.certificate_no} successfully.`);
       } else {

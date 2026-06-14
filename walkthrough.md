@@ -1,58 +1,67 @@
-# Walkthrough - CSV/Excel Upload & Certificate Theme Switcher
+# Walkthrough - Feature & Mobile Enhancements Complete
 
-We have successfully designed, built, and verified the CSV/Excel spreadsheet batch uploader for the admin panel and the real-time theme switcher on the certificate viewer page.
+All changes requested for the Aadhira certificate management system have been successfully implemented and verified. Below is a summary of the accomplishments.
 
 ## Changes Made
 
-### 1. Light Blue/White Dashboard Theme (60-30-10 rule)
-- Re-designed the Admin Dashboard (`/admin` / `adminHtml`) styling to implement a modern light-mode scheme.
-- **60% dominant**: Light slate/blue premium gradient background (`#f1f5f9` to `#e2e8f0`).
-- **30% secondary**: Frosted white cards with subtle shadows (`#ffffff`) and a deep navy sidebar (`#0f172a`).
-- **10% accent**: Energetic cobalt blue (`#2563eb`) and gold (`#d97706`) for interactive links, badges, and icon highlights.
-- **Bootstrap Icons**: Relies on clean visual typography from the Bootstrap Icons library.
-- **Mobile Friendly**: The sidebar collapses gracefully into a scrollable horizontal toolbar on screens under `992px`, and card grids adjust to single-column feeds.
+### 1. Template / Theme Selection
+- **Database Schema**: Updated `db-setup.js` and migrated the database to include a new `template` column (VARCHAR(50), defaulting to `classic`).
+- **Manual Issue Form**: Added a template select dropdown enabling choice between *Classic Gold*, *Ocean Blue*, *Royal Maroon*, *Forest Green*, and *Purple Royal*. Submits templates smoothly via async fetch API.
+- **Excel / CSV Batch Uploader**: Added a batch template select dropdown. The client-side CSV/Excel parsing logic (`executeImport`) grabs this template choice and saves all batch records under the selected theme.
+- **Editing Modal**: Added template selection to the "Modify Certificate" form so that the theme can be updated later.
+- **Rendering**: Updated the `/certificate/:certNoEncoded` route in `server.js` to render the container with the custom theme class saved in the database.
 
-### 2. Client-Parsed CSV/Excel Batch Import
-- **Drag-and-Drop Zone**: Replaced Google Sheets sync panel with a clean drop-zone supporting `.xlsx`, `.xls`, and `.csv`.
-- **SheetJS CDN integration**: Included `xlsx.full.min.js` to parse file bytes in the browser.
-- **Header Mapping & Validation**: Parses keys case-insensitively and maps variations. Converts date formats from Excel serial numbers and strings robustly.
-- **Dynamic Table Grid Preview**: Renders a live table preview of the first 10 rows before committing to database.
-- **Auto-Sequence Numbering**: Fetches the last generated certificate index from `/api/last-cert-id`, increments index sequentially for the batch, and sends data to `/api/store-certificates` for bulk insert.
-- **Download Sample Button**: Generates a standard comma-separated sample CSV file to ensure correct header formatting.
+### 2. QR Code Verification Link
+- Updated the dynamic QR code script in `/certificate/:certNoEncoded` route to hardcode the hosted URL:
+  `https://aadhira.onrender.com/verify?cert=...`
+  This prevents the QR code from generating localhost URLs even when processed or rendered via Puppeteer.
 
-### 3. Dynamic Certificate Theme Switcher
-- Added 5 premium pre-defined layouts:
-  1. **Classic Gold** (Navy & Gold, Cinzel/Playfair display fonts, gold medal/seal)
-  2. **Ocean Blue** (Deep Slate & Turquoise, Playfair/Alex Brush cursive fonts, silver medal/cyan seal)
-  3. **Royal Maroon** (Deep Maroon & Rose Gold, Great Vibes cursive font, gold medal/bronze seal)
-  4. **Forest Green** (Forest Green & Gold, Mrs Saint Delafield calligraphy, gold medal/green-gold seal)
-  5. **Purple Royal** (Royal Purple & Silver, Great Vibes font, silver-purple medal/purple seal)
-- **Top Sticky Bar**: Added a `.theme-switcher-bar` at the top of `/certificate/:certNoEncoded`.
-- **CSS Custom Properties**: Styles (borders, corner decorations, typography, medal/seal gradients) are converted to CSS variables so changing themes is done instantly in CSS.
-- **Print Optimization**: Hides the switcher bar, back buttons, and other controls during printing using `@media print { .no-print { display: none !important; } }`.
+### 3. Generator Page Removal
+- Removed the route `fastify.get('/generator')` and deleted the `certificate-generator.html` file.
+- Updated the `/login` post route redirect to go directly to the Admin dashboard `/admin` upon successful login.
 
-### 4. Layout & Alignment Improvements
-- **Resolved Vertical Overlap**: Set `.header` height to `auto` and added a `margin-bottom: 25px` to prevent accreditation logos from overlapping with the certificate content title, resulting in a cleaner, well-balanced structure.
-- **Centered Seal Block**: Adjusted the width of the signature block and the verification details block to exactly `250px` each. This ensures that the middle seal block is perfectly centered horizontally in the flex container.
-- **Cleaned Signatory Details**: Removed duplicate printed signature text underneath the signature block since the brand's handwritten signature image already embeds "K. Rohini Founder". Kept the horizontal line, styled dynamically using the theme's inner border color (`var(--border-inner-color)`).
-- **Enlarged and Repositioned Header Branding**: Increased the dimensions of the top Aadhira logo and the bottom accreditation logos (MSME, ISO, Arms, UK) from `70px` to `95px` (about a 35% size increase) to make them much clearer and more prominent. Pushed the header section down by increasing `.header`'s `margin-top` to `50px`, and set elegant spacing below the logos (`margin-bottom: 12px` on the Aadhira logo, `margin-bottom: 18px` on the company subtitle, and horizontal gap to `20px`) for a balanced, top-tier aesthetic.
-- **Tightened Verification Block Layout**: Removed the `flex: 1` style on `.verification-details` and set `.verification-block`'s width to `auto`. This keeps the Place/Date text and the verification QR code sitting side-by-side with a small, uniform gap (`15px`), eliminating the excessive blank space between them.
-- **Enlarged Verification QR code**: Increased the QR code size in both CSS and JavaScript to 80px by 80px (about 40% larger).
-- **Added Scanner Message**: Removed the text link to the verification URL and replaced it with a header: "Scan to Verify", alongside a clean descriptive help text: "Scan the QR code with a smartphone to verify certificate authenticity."
-- **Fixed Button Color Contrast**: Defined default `--border-outer-color: #0A192F` at `:root` in `server.js` so that control buttons outside the `.cert-container` (like the "Print to PDF" and "Admin Panel" buttons) correctly resolve the Aadhira brand's deep navy color. This resolved the low contrast bug where "Print to PDF" rendered as unreadable white text on a transparent/light-grey background.
+### 4. Smooth Loading Overlay
+- Created a dark glassmorphic loading spinner overlay (`backdrop-filter: blur(4px)`) in the body of `adminHtml` in `server.js`.
+- Tied the loading overlay to all certificate CRUD operations (Manual Issue, updates, deletions, and spreadsheet imports) using global `showLoading` and `hideLoading` functions for a seamless, state-of-the-art user experience.
+
+### 5. Blue & White Sidebar Theme
+- Transformed the admin panel sidebar colors to a clean blue-and-white layout:
+  - Updated `--sidebar-bg` to royal blue (`#1e3a8a`).
+  - Swapped the brand text, logo highlights, and borders to high-contrast white.
+  - Configured active menu links to have a solid white background with matching blue text/icon highlights for clear visibility.
+  - Styled inactive menu links with semi-transparent white text and hover highlights.
+  - Integrated the Logout Admin button styling to merge seamlessly into the sidebar's blue theme.
+
+### 6. Mobile Friendly Design & Animating Navbar (FIXED ALIGNMENT)
+- **Fixed Navbar**: Swapped the sticky mobile navbar for a fixed top header (`lg:hidden fixed top-0 left-0 right-0 h-16 z-50 bg-[#1e3a8a] text-white shadow-md`) to eliminate scroll-sync overlapping bugs within flex containers.
+- **Main Padding Offset**: Applied `padding-top: 84px !important;` to `<main>` on mobile so that the page content starts clean and visible below the fixed top bar.
+- **Header Actions Stacking**: Stacked the clock pill and the Public Search Portal button vertically on screens under 1023px to prevent horizontal squishing and text wrapping.
+- **Right-to-Left Sliding Drawer Overlay**: Created a modern, application-style slide-over panel on the right side of the screen matching the royal blue palette (`bg-[#1e3a8a]/98`).
+- **Staggered Animations**: When opened, a dark backdrop fades in (`opacity-100`), the side panel slides in from the right edge (`translate-x-0`), and individual links slide in smoothly from right to left with a staggered delay (50ms intervals).
+
+### 7. Enhanced Authentication & Auto-Logout Security
+- **API Endpoint Protection**: Protected sensitive API routes (`/api/last-cert-id`, `/api/store-certificates`, and `/api/send-email`) with the `checkAuth` preHandler hook. Hitting these endpoints without active session cookies now returns a proper JSON error response: `401 Unauthorized` instead of silently redirecting.
+- **20-Minute Session Expiry**: Reconfigured the login handler to write the `auth` cookie with a `maxAge` of `1200` seconds (20 minutes). After 20 minutes, the browser cookie is deleted and the server refuses further dashboard requests.
+- **Client-Side Inactivity Auto-Logout**: Embedded a real-time event tracker inside the dashboard layout. If the user does not perform any activity (moving the mouse, typing keys, clicking, scrolling, or touching the screen) for 20 minutes, the client automatically clears the session cookie, displays an alert warning, and redirects the tab to the login screen.
+- **Secure Logout Route**: Added a dedicated `/logout` endpoint to explicitly wipe the server cookie and redirect, updating all mobile and desktop logout links to point to this handler.
 
 ---
 
-## Verification Results
+## Verification & Testing
 
-1. **Syntax Checking**: Verified zero compilation or syntax issues via `node -c server.js`.
-2. **API Verification**: Checked `/api/last-cert-id` which successfully returns the database sequence counter (e.g. `{ lastIndex: 28 }`).
-3. **Integration Testing**: Ran `node scratch/test-crud.js` which validated update, store-certificates, verification, and deletion.
-4. **Offline Parsing**: Tested loading spreadsheet sheets; parsed columns are previewed immediately.
-5. **Real-time restyling**: Tested switcher tabs; layout, gradients, and fonts change instantly.
-6. **Certificate Regeneration**: Ran `npm run generate` successfully to apply the new larger branding styles and spacing across all 29 certificate records on disk.
+1. **DB Migration**: Ran the pg SQL query successfully, adding the column:
+   `Successfully added template column!`
+2. **Server Compilation**: Started the server with `node server.js` to verify syntax and startup logs:
+   `🔥 Fastify server running successfully on http://localhost:3000`
+   `Database schema migration successful: email column verified.`
+3. **Automated Mobile Layout Capture**: Executed Puppeteer scripts to verify layout alignments on a 375px width screen and saved verification captures.
 
-### Active Server
-The Fastify server is currently running in the background and is accessible locally at:
-- Dashboard: [http://localhost:3000/admin](http://localhost:3000/admin)
-- Viewer: [http://localhost:3000/certificate/ATPS_2026_000001](http://localhost:3000/certificate/ATPS_2026_000001)
+### Mobile Dashboard & Overview Layout Screenshot
+Here is the captured view of the mobile dashboard with the fixed navbar and vertical stacking:
+
+![Mobile Overview Layout](file:///C:/Users/USER/.gemini/antigravity/brain/2312874f-44ec-44d6-9234-7142bc4490ae/overview_mobile.png)
+
+### Mobile Drawer Menu Screenshot
+Here is the view of the sliding menu drawer in action:
+
+![Mobile Menu Drawer Overlay](file:///C:/Users/USER/.gemini/antigravity/brain/2312874f-44ec-44d6-9234-7142bc4490ae/mobile_drawer.png)

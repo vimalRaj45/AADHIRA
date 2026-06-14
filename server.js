@@ -16,6 +16,9 @@ fastify.register(require('@fastify/formbody'));
 
 const checkAuth = async (request, reply) => {
   if (request.cookies.auth !== 'true') {
+    if (request.url.startsWith('/api/')) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized access. Please log in.' });
+    }
     return reply.redirect('/login');
   }
 };
@@ -31,11 +34,17 @@ fastify.get('/login', async (request, reply) => {
 
 fastify.post('/login', async (request, reply) => {
   if (request.body.password === process.env.ADMIN_PASSWORD) {
-    reply.setCookie('auth', 'true', { path: '/', httpOnly: true, maxAge: 86400 * 7 });
-    return reply.redirect('/generator');
+    // Session cookie expires in 20 minutes (1200 seconds)
+    reply.setCookie('auth', 'true', { path: '/', httpOnly: true, maxAge: 1200 });
+    return reply.redirect('/admin');
   } else {
     return reply.redirect('/login?err=1');
   }
+});
+
+fastify.get('/logout', async (request, reply) => {
+  reply.clearCookie('auth', { path: '/' });
+  return reply.redirect('/login');
 });
 
 const connectionString = 'postgresql://neondb_owner:npg_c3Z8hrJHXGIR@ep-old-shape-apznh8mh-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
@@ -678,12 +687,13 @@ const adminHtml = (certificates, message = '', error = '') => {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-      --sidebar-bg: #0f172a;
+      --sidebar-bg: #1e3a8a;
       --card-bg: #ffffff;
       --card-border: rgba(15, 23, 42, 0.08);
       --gold: #D97706;
@@ -729,7 +739,7 @@ const adminHtml = (certificates, message = '', error = '') => {
     aside {
       width: var(--sidebar-width);
       background: var(--sidebar-bg);
-      border-right: 1px solid var(--card-border);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -745,13 +755,13 @@ const adminHtml = (certificates, message = '', error = '') => {
       display: flex;
       align-items: center;
       gap: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .brand-logo {
       width: 38px;
       height: 38px;
-      fill: var(--gold-light);
+      fill: #ffffff;
       color: #fff;
     }
 
@@ -765,7 +775,7 @@ const adminHtml = (certificates, message = '', error = '') => {
 
     .brand-subtitle {
       font-size: 9px;
-      color: var(--gold-light);
+      color: rgba(255, 255, 255, 0.7);
       text-transform: uppercase;
       letter-spacing: 2px;
       margin-top: 2px;
@@ -784,7 +794,7 @@ const adminHtml = (certificates, message = '', error = '') => {
       align-items: center;
       gap: 14px;
       padding: 14px 18px;
-      color: var(--text-muted);
+      color: rgba(255, 255, 255, 0.7);
       text-decoration: none;
       font-weight: 500;
       font-size: 14.5px;
@@ -800,20 +810,20 @@ const adminHtml = (certificates, message = '', error = '') => {
 
     .sidebar-link:hover {
       color: #fff;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .sidebar-link.active {
-      color: #fff;
-      background: var(--accent-blue);
-      border-color: rgba(255, 255, 255, 0.1);
+      color: var(--sidebar-bg);
+      background: #ffffff;
+      border-color: #ffffff;
       font-weight: 600;
-      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.2);
+      box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
     }
 
     .sidebar-footer {
       padding: 24px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .logout-btn {
@@ -823,9 +833,9 @@ const adminHtml = (certificates, message = '', error = '') => {
       gap: 10px;
       width: 100%;
       padding: 12px;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      color: var(--danger);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
       font-family: inherit;
       font-weight: 600;
       border-radius: 8px;
@@ -837,8 +847,9 @@ const adminHtml = (certificates, message = '', error = '') => {
 
     .logout-btn:hover {
       background: var(--danger);
+      border-color: var(--danger);
       color: #fff;
-      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
     }
 
     /* MAIN CONTENT */
@@ -970,29 +981,35 @@ const adminHtml = (certificates, message = '', error = '') => {
     .stat-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.03);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
     }
 
-    .stat-card::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 4px;
-      height: 100%;
-      background: var(--accent-blue);
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      border-color: rgba(37, 99, 235, 0.15);
     }
 
-    .stat-card.stat-green::after { background: var(--success); }
-    .stat-card.stat-blue::after { background: #3B82F6; }
-    .stat-card.stat-purple::after { background: #A78BFA; }
+    .stat-icon-wrapper {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon-wrapper {
+      transform: rotate(5deg) scale(1.05);
+    }
 
     .stat-data {
       display: flex;
@@ -1033,6 +1050,9 @@ const adminHtml = (certificates, message = '', error = '') => {
       padding: 30px;
       margin-bottom: 30px;
       box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.03);
+      max-width: 100%;
+      min-width: 0;
+      overflow-x: hidden;
     }
 
     .card-header {
@@ -1461,12 +1481,20 @@ const adminHtml = (certificates, message = '', error = '') => {
 
     .domain-list-item {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
       background: #f8fafc;
       border: 1px solid var(--card-border);
-      padding: 12px 18px;
-      border-radius: 8px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      transition: all 0.25s ease;
+    }
+
+    .domain-list-item:hover {
+      background: #f1f5f9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
     }
 
     .domain-info {
@@ -1498,34 +1526,182 @@ const adminHtml = (certificates, message = '', error = '') => {
       border: 1px solid rgba(37, 99, 235, 0.2);
     }
 
-    @media (max-width: 992px) {
+    .dashboard-grid-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 30px;
+      align-items: start;
+    }
+    .dashboard-grid-layout.layout-360 {
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    @media (max-width: 1023px) {
       body { flex-direction: column; }
-      aside {
+      aside { display: none !important; }
+      main { margin-left: 0 !important; padding: 20px; padding-top: 84px !important; }
+      header { flex-direction: column; align-items: stretch; gap: 15px; text-align: center; }
+      .page-info { display: flex; flex-direction: column; align-items: center; }
+      .header-actions { 
+        width: 100%; 
+        display: flex;
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 12px; 
+      }
+      .live-time, .public-portal-btn {
         width: 100%;
-        height: auto;
-        position: relative;
-        border-right: none;
-        border-bottom: 1px solid var(--card-border);
+        justify-content: center;
+        text-align: center;
       }
-      .brand-section { padding: 20px; }
-      .menu-section {
-        flex-direction: row;
-        overflow-x: auto;
-        padding: 10px 20px;
-        gap: 10px;
+      .dashboard-grid-layout, .dashboard-grid-layout.layout-360 {
+        grid-template-columns: minmax(0, 1fr);
       }
-      .sidebar-link {
-        white-space: nowrap;
-        padding: 10px 16px;
+    }
+
+    @media (max-width: 600px) {
+      .stats-grid {
+        gap: 16px;
+        margin-bottom: 25px;
       }
-      .sidebar-footer { display: none; }
-      main { margin-left: 0; padding: 24px; }
-      header { flex-direction: column; align-items: flex-start; gap: 20px; }
-      .header-actions { width: 100%; justify-content: space-between; }
+      .stat-card {
+        padding: 16px 20px;
+      }
+      .stat-value {
+        font-size: 24px;
+      }
+      .dashboard-card {
+        padding: 16px;
+        border-radius: 12px;
+      }
+      .card-header {
+        margin-bottom: 16px;
+        padding-bottom: 10px;
+      }
+      th, td {
+        padding: 12px 14px;
+        font-size: 13px;
+      }
+      .domain-tag {
+        padding: 3px 10px;
+        font-size: 10.5px;
+      }
+    }
+    
+    /* Dynamic Loading Overlay styling */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      gap: 15px;
+      transition: all 0.3s ease;
+    }
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid var(--gold-light);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @media (max-width: 600px) {
+      .modal-overlay {
+        padding: 16px;
+      }
+      .modal-box {
+        border-radius: 12px;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+    }
+    
+    @media (max-width: 1200px) {
+      .dashboard-grid-layout, .dashboard-grid-layout.layout-360 {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
     }
   </style>
 </head>
 <body>
+
+  <!-- Mobile Navbar (Tailwind CSS) -->
+  <nav class="lg:hidden bg-[#1e3a8a] text-white fixed top-0 left-0 right-0 h-16 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Brand logo & title -->
+        <div class="flex items-center gap-3">
+          <svg class="w-8 h-8 fill-white" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="55" fill="none" stroke="currentColor" stroke-width="6"/>
+            <path d="M60 22 L92 88 L75 88 L60 54 L45 88 L28 88 Z" fill="currentColor"/>
+          </svg>
+          <span class="font-['Cinzel'] font-extrabold text-lg tracking-wider">ATPS PANEL</span>
+        </div>
+        <!-- Hamburger menu button -->
+        <button onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md hover:bg-white/10 focus:outline-none transition">
+          <i id="mobileMenuIcon" class="bi bi-list text-2xl"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu Drawer (hidden by default, fixed overlay) -->
+  <div id="mobileMenuDrawer" class="fixed inset-0 z-50 lg:hidden hidden transition-all duration-300 pointer-events-none">
+    <!-- Backdrop overlay -->
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-auto" id="mobileMenuBackdrop" onclick="toggleMobileMenu()"></div>
+    
+    <!-- Drawer panel (slides from right) -->
+    <div class="fixed top-0 right-0 bottom-0 w-72 max-w-[80vw] bg-[#1e3a8a]/98 backdrop-blur-md border-l border-white/10 shadow-2xl flex flex-col z-50 transform translate-x-full transition-transform duration-300 ease-out pointer-events-auto" id="mobileMenuPanel">
+      <!-- Drawer header -->
+      <div class="flex items-center justify-between px-6 h-16 border-b border-white/10">
+        <div class="flex items-center gap-3">
+          <svg class="w-8 h-8 fill-white" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="55" fill="none" stroke="currentColor" stroke-width="6"/>
+            <path d="M60 22 L92 88 L75 88 L60 54 L45 88 L28 88 Z" fill="currentColor"/>
+          </svg>
+          <span class="font-['Cinzel'] font-extrabold text-lg tracking-wider text-white">ATPS PANEL</span>
+        </div>
+        <button onclick="toggleMobileMenu()" class="p-2 rounded-md hover:bg-white/10 text-white focus:outline-none transition">
+          <i class="bi bi-x text-2xl"></i>
+        </button>
+      </div>
+      
+      <!-- Drawer links -->
+      <div class="flex-1 px-4 py-6 space-y-3 overflow-y-auto">
+        <a onclick="switchTab('overview'); toggleMobileMenu();" id="mobile-link-overview" class="mobile-nav-link flex items-center gap-4 px-4 py-3.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white font-medium transition-all duration-300 ease-out cursor-pointer transform translate-x-8 opacity-0">
+          <i class="bi bi-grid-fill text-xl"></i> <span class="tracking-wide">Overview</span>
+        </a>
+        <a onclick="switchTab('certificates'); toggleMobileMenu();" id="mobile-link-certificates" class="mobile-nav-link flex items-center gap-4 px-4 py-3.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white font-medium transition-all duration-300 ease-out cursor-pointer transform translate-x-8 opacity-0">
+          <i class="bi bi-file-earmark-spreadsheet-fill text-xl"></i> <span class="tracking-wide">Certificates Database</span>
+        </a>
+        <a onclick="switchTab('issue'); toggleMobileMenu();" id="mobile-link-issue" class="mobile-nav-link flex items-center gap-4 px-4 py-3.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white font-medium transition-all duration-300 ease-out cursor-pointer transform translate-x-8 opacity-0">
+          <i class="bi bi-plus-circle-fill text-xl"></i> <span class="tracking-wide">Issue Credential</span>
+        </a>
+        <a onclick="switchTab('sync'); toggleMobileMenu();" id="mobile-link-sync" class="mobile-nav-link flex items-center gap-4 px-4 py-3.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white font-medium transition-all duration-300 ease-out cursor-pointer transform translate-x-8 opacity-0">
+          <i class="bi bi-file-earmark-arrow-up-fill text-xl"></i> <span class="tracking-wide">CSV / Excel Import</span>
+        </a>
+      </div>
+      
+      <!-- Drawer footer -->
+      <div class="p-4 border-t border-white/10 bg-[#162e70]">
+        <a href="/logout" class="flex items-center justify-center gap-2 py-3 bg-red-600/90 hover:bg-red-600 rounded-xl text-white font-semibold text-sm transition-all duration-300 ease-out shadow-lg transform translate-x-8 opacity-0" id="mobile-link-logout">
+          <i class="bi bi-box-arrow-left"></i> Logout Admin
+        </a>
+      </div>
+    </div>
+  </div>
 
   <!-- SIDEBAR NAVIGATION -->
   <aside>
@@ -1560,7 +1736,7 @@ const adminHtml = (certificates, message = '', error = '') => {
     </div>
     
     <div class="sidebar-footer">
-      <a href="/login" class="logout-btn">
+      <a href="/logout" class="logout-btn">
         <i class="bi bi-box-arrow-left"></i>
         <span>Logout Admin</span>
       </a>
@@ -1587,7 +1763,6 @@ const adminHtml = (certificates, message = '', error = '') => {
     <!-- ALERTS -->
     ${message ? `<div class="alert alert-success" id="alert-banner"><i class="bi bi-check-circle-fill"></i> <span>${message}</span></div>` : ''}
     ${error ? `<div class="alert alert-danger" id="alert-banner"><i class="bi bi-exclamation-triangle-fill"></i> <span>${error}</span></div>` : ''}
-
     <!-- TAB: OVERVIEW -->
     <div class="tab-panel" id="panel-overview">
       <div class="stats-grid">
@@ -1596,35 +1771,43 @@ const adminHtml = (certificates, message = '', error = '') => {
             <span class="stat-label">Total Issued</span>
             <span class="stat-value">${certificates.length}</span>
           </div>
-          <i class="bi bi-file-earmark-richtext stat-icon"></i>
+          <div class="stat-icon-wrapper bg-[#eff6ff] text-[#2563eb]">
+            <i class="bi bi-file-earmark-richtext"></i>
+          </div>
         </div>
         
-        <div class="stat-card stat-green">
+        <div class="stat-card">
           <div class="stat-data">
             <span class="stat-label">Active Domains</span>
             <span class="stat-value">${new Set(certificates.map(c => c.domain)).size}</span>
           </div>
-          <i class="bi bi-tags stat-icon"></i>
+          <div class="stat-icon-wrapper bg-[#ecfdf5] text-[#10b981]">
+            <i class="bi bi-tags"></i>
+          </div>
         </div>
         
-        <div class="stat-card stat-blue">
+        <div class="stat-card">
           <div class="stat-data">
             <span class="stat-label">Institutions</span>
             <span class="stat-value">${new Set(certificates.map(c => c.college_name)).size}</span>
           </div>
-          <i class="bi bi-building stat-icon"></i>
+          <div class="stat-icon-wrapper bg-[#fffbeb] text-[#d97706]">
+            <i class="bi bi-building"></i>
+          </div>
         </div>
         
-        <div class="stat-card stat-purple">
+        <div class="stat-card">
           <div class="stat-data">
             <span class="stat-label">API Status</span>
-            <span class="stat-value" style="font-size:16px; color:#10B981;">Active Ready</span>
+            <span class="stat-value" style="font-size:16px; color:#10B981; font-weight: 700;">Active Ready</span>
           </div>
-          <i class="bi bi-cloud-check stat-icon"></i>
+          <div class="stat-icon-wrapper bg-[#faf5ff] text-[#8b5cf6]">
+            <i class="bi bi-cloud-check"></i>
+          </div>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 360px; gap: 30px; align-items: start;">
+      <div class="dashboard-grid-layout layout-360">
         <!-- Recent Certificates Table -->
         <div class="dashboard-card" style="margin-bottom: 0;">
           <div class="card-header">
@@ -1664,16 +1847,23 @@ const adminHtml = (certificates, message = '', error = '') => {
           <div class="domain-list">
             ${[...new Set(certificates.map(c => c.domain))].map(d => {
               const count = certificates.filter(c => c.domain === d).length;
+              const total = certificates.length || 1;
+              const percentage = Math.round((count / total) * 100);
               return `
                 <div class="domain-list-item">
-                  <div class="domain-info">
-                    <div class="domain-bullet"></div>
-                    <span class="domain-name">${d}</span>
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div class="domain-info">
+                      <div class="domain-bullet"></div>
+                      <span class="domain-name" style="font-weight:600; color:var(--text-main);">${d}</span>
+                    </div>
+                    <span class="domain-count" style="font-weight:700; color:var(--accent-blue);">${count}</span>
                   </div>
-                  <span class="domain-count">${count}</span>
+                  <div class="w-full bg-slate-200/60 rounded-full h-1.5 overflow-hidden mt-1">
+                    <div class="bg-[#2563eb] h-full rounded-full" style="width: ${percentage}%;"></div>
+                  </div>
                 </div>
               `;
-            }).join('') || '<div style="color:var(--text-muted);">No domains registered yet.</div>'}
+            }).join('') || '<div style="color:var(--text-muted); text-align:center; padding: 20px;">No domains registered yet.</div>'}
           </div>
         </div>
       </div>
@@ -1743,7 +1933,7 @@ const adminHtml = (certificates, message = '', error = '') => {
 
     <!-- TAB: ISSUE CREDENTIAL -->
     <div class="tab-panel hidden" id="panel-issue">
-      <div style="display: grid; grid-template-columns: 1fr 340px; gap: 30px; align-items: start;">
+      <div class="dashboard-grid-layout">
         
         <!-- Form card -->
         <div class="dashboard-card" style="margin-bottom: 0;">
@@ -1751,7 +1941,7 @@ const adminHtml = (certificates, message = '', error = '') => {
             <div class="card-title"><i class="bi bi-plus-circle-fill"></i> Manually Issue Certificate</div>
           </div>
           
-          <form action="/admin/add" method="POST">
+          <form id="manualIssueForm" onsubmit="submitManualIssueForm(event)">
             <div class="form-grid">
               <div class="form-group">
                 <label>Certificate ID Sequence</label>
@@ -1841,6 +2031,17 @@ const adminHtml = (certificates, message = '', error = '') => {
                   <option value="EXCELLENCE">Certificate of Excellence</option>
                 </select>
               </div>
+              
+              <div class="form-group full-width">
+                <label><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template / Theme</label>
+                <select name="template" class="form-control" required>
+                  <option value="classic">Classic Gold</option>
+                  <option value="blue">Ocean Blue</option>
+                  <option value="maroon">Royal Maroon</option>
+                  <option value="forest">Forest Green</option>
+                  <option value="purple">Purple Royal</option>
+                </select>
+              </div>
             </div>
 
             <button type="submit" class="submit-btn" style="margin-top: 15px;"><i class="bi bi-file-earmark-plus"></i> Generate and Issue</button>
@@ -1867,7 +2068,7 @@ const adminHtml = (certificates, message = '', error = '') => {
 
     <!-- TAB: CSV/EXCEL BATCH IMPORT -->
     <div class="tab-panel hidden" id="panel-sync">
-      <div style="display: grid; grid-template-columns: 1fr 340px; gap: 30px; align-items: start;">
+      <div class="dashboard-grid-layout">
         
         <!-- Import Card -->
         <div class="dashboard-card" style="margin-bottom: 0;">
@@ -1913,6 +2114,17 @@ const adminHtml = (certificates, message = '', error = '') => {
                 <option value="TRAINING">Certificate of Training</option>
                 <option value="APPRECIATION">Certificate of Appreciation</option>
                 <option value="EXCELLENCE">Certificate of Excellence</option>
+              </select>
+            </div>
+            
+            <div style="margin-bottom: 18px; padding: 16px 20px; background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.3); border-radius: 10px;">
+              <label style="font-size: 13px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 10px;"><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template for this Batch</label>
+              <select id="batchTemplate" class="form-control" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 14px; font-size: 13.5px; width: 100%;">
+                <option value="classic">Classic Gold</option>
+                <option value="blue">Ocean Blue</option>
+                <option value="maroon">Royal Maroon</option>
+                <option value="forest">Forest Green</option>
+                <option value="purple">Purple Royal</option>
               </select>
             </div>
             <button onclick="executeImport()" class="submit-btn" id="executeImportBtn" style="background: linear-gradient(135deg, var(--success), #047857); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i> Import & Save to Database</button>
@@ -2014,6 +2226,17 @@ const adminHtml = (certificates, message = '', error = '') => {
               <label>Signatory Designation</label>
               <input type="text" name="signatory_designation" id="edit-signatory-designation" class="form-control" required>
             </div>
+            
+            <div class="form-group full-width">
+              <label><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template / Theme</label>
+              <select name="template" id="edit-template" class="form-control" required>
+                <option value="classic">Classic Gold</option>
+                <option value="blue">Ocean Blue</option>
+                <option value="maroon">Royal Maroon</option>
+                <option value="forest">Forest Green</option>
+                <option value="purple">Purple Royal</option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -2049,18 +2272,106 @@ const adminHtml = (certificates, message = '', error = '') => {
 
   <!-- CLIENT SCRIPTS -->
   <script>
+    // Inactivity Auto-Logout (20 minutes)
+    let inactivityTimer;
+    function resetInactivityTimer() {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        // Clear auth cookie and redirect
+        document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        alert("Session expired due to 20 minutes of inactivity. Please log in again.");
+        window.location.href = "/logout";
+      }, 1200000); // 1,200,000 ms = 20 minutes
+    }
+    
+    // Listen to user activity events
+    window.addEventListener('load', resetInactivityTimer);
+    window.addEventListener('mousemove', resetInactivityTimer);
+    window.addEventListener('mousedown', resetInactivityTimer);
+    window.addEventListener('keypress', resetInactivityTimer);
+    window.addEventListener('touchstart', resetInactivityTimer);
+    window.addEventListener('scroll', resetInactivityTimer);
+
     // Tab switching controller
     function switchTab(tabId) {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
       document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
       
+      // Clear active class from mobile nav links
+      document.querySelectorAll('.mobile-nav-link').forEach(l => {
+        l.classList.remove('bg-white', 'text-[#1e3a8a]', 'font-semibold');
+        l.classList.add('text-white/80');
+      });
+      
       const panel = document.getElementById('panel-' + tabId);
       const link = document.getElementById('link-' + tabId);
+      const mobileLink = document.getElementById('mobile-link-' + tabId);
       
-      if (panel && link) {
+      if (panel) {
         panel.classList.remove('hidden');
-        link.classList.add('active');
+        if (link) link.classList.add('active');
+        if (mobileLink) {
+          mobileLink.classList.remove('text-white/80');
+          mobileLink.classList.add('bg-white', 'text-[#1e3a8a]', 'font-semibold');
+        }
         localStorage.setItem('activeDashboardTab', tabId);
+      }
+    }
+
+    function toggleMobileMenu() {
+      const drawer = document.getElementById('mobileMenuDrawer');
+      const backdrop = document.getElementById('mobileMenuBackdrop');
+      const panel = document.getElementById('mobileMenuPanel');
+      const links = panel.querySelectorAll('.mobile-nav-link, #mobile-link-logout');
+      const icon = document.getElementById('mobileMenuIcon');
+
+      const isHidden = drawer.classList.contains('hidden');
+
+      if (isHidden) {
+        // Open Drawer
+        drawer.classList.remove('hidden');
+        // Force reflow
+        void drawer.offsetWidth;
+        
+        drawer.classList.remove('pointer-events-none');
+        backdrop.classList.remove('opacity-0');
+        backdrop.classList.add('opacity-100');
+        panel.classList.remove('translate-x-full');
+        panel.classList.add('translate-x-0');
+        
+        if (icon) {
+          icon.classList.remove('bi-list');
+          icon.classList.add('bi-x');
+        }
+
+        // Staggered smooth animation of links from right to left
+        links.forEach((link, index) => {
+          setTimeout(() => {
+            link.classList.remove('translate-x-8', 'opacity-0');
+            link.classList.add('translate-x-0', 'opacity-100');
+          }, 100 + index * 50);
+        });
+      } else {
+        // Close Drawer
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('opacity-0');
+        panel.classList.remove('translate-x-0');
+        panel.classList.add('translate-x-full');
+        
+        if (icon) {
+          icon.classList.remove('bi-x');
+          icon.classList.add('bi-list');
+        }
+
+        links.forEach((link) => {
+          link.classList.remove('translate-x-0', 'opacity-100');
+          link.classList.add('translate-x-8', 'opacity-0');
+        });
+
+        // Add hidden back after transitions finish (300ms)
+        setTimeout(() => {
+          drawer.classList.add('hidden', 'pointer-events-none');
+        }, 300);
       }
     }
 
@@ -2230,6 +2541,7 @@ const adminHtml = (certificates, message = '', error = '') => {
       document.getElementById('edit-place').value = cert.place;
       document.getElementById('edit-authorized-signatory').value = cert.authorized_signatory;
       document.getElementById('edit-signatory-designation').value = cert.signatory_designation;
+      document.getElementById('edit-template').value = cert.template || 'classic';
       
       document.getElementById('editModal').style.display = 'flex';
     }
@@ -2238,8 +2550,55 @@ const adminHtml = (certificates, message = '', error = '') => {
       document.getElementById('editModal').style.display = 'none';
     }
 
+    async function submitManualIssueForm(event) {
+      event.preventDefault();
+      showLoading("Generating and issuing certificate... Please wait");
+      const form = event.target;
+      const data = {
+        certificate_no: form.certificate_no.value,
+        student_name: form.student_name.value,
+        email: form.email.value,
+        college_name: form.college_name.value,
+        degree: form.degree.value,
+        year: form.year.value,
+        domain: form.domain.value,
+        duration: form.duration.value,
+        start_date: form.start_date.value,
+        end_date: form.end_date.value,
+        issue_date: form.issue_date.value,
+        place: form.place.value,
+        authorized_signatory: form.authorized_signatory.value,
+        signatory_designation: form.signatory_designation.value,
+        certificate_type: form.certificate_type.value,
+        template: form.template.value
+      };
+      
+      try {
+        const res = await fetch('/admin/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (res.redirected) {
+          window.location.href = res.url;
+        } else if (res.ok) {
+          window.location.href = '/admin?msg=' + encodeURIComponent('Certificate ' + data.certificate_no + ' generated and issued successfully!');
+        } else {
+          const errText = await res.text();
+          alert('Error: ' + errText);
+          hideLoading();
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('Failed to connect to the server: ' + err.message);
+        hideLoading();
+      }
+    }
+
     async function submitEditForm(event) {
       event.preventDefault();
+      showLoading("Saving certificate updates... Please wait");
       const form = event.target;
       const data = {
         certificate_no: form.certificate_no.value,
@@ -2254,7 +2613,8 @@ const adminHtml = (certificates, message = '', error = '') => {
         issue_date: form.issue_date.value,
         place: form.place.value,
         authorized_signatory: form.authorized_signatory.value,
-        signatory_designation: form.signatory_designation.value
+        signatory_designation: form.signatory_designation.value,
+        template: form.template.value
       };
       
       try {
@@ -2270,10 +2630,12 @@ const adminHtml = (certificates, message = '', error = '') => {
         } else {
           const errData = await res.json();
           alert('Error updating certificate: ' + (errData.error || 'Unknown error'));
+          hideLoading();
         }
       } catch (err) {
         console.error('Error:', err);
         alert('Failed to connect to the server: ' + err.message);
+        hideLoading();
       }
     }
 
@@ -2294,6 +2656,7 @@ const adminHtml = (certificates, message = '', error = '') => {
     async function confirmDelete() {
       if (!certNoToDelete) return;
       
+      showLoading("Deleting certificate... Please wait");
       try {
         const res = await fetch('/admin/delete', {
           method: 'POST',
@@ -2307,10 +2670,12 @@ const adminHtml = (certificates, message = '', error = '') => {
         } else {
           const errData = await res.json();
           alert('Error deleting certificate: ' + (errData.error || 'Unknown error'));
+          hideLoading();
         }
       } catch (err) {
         console.error('Error:', err);
         alert('Failed to connect to the server: ' + err.message);
+        hideLoading();
       }
     }
 
@@ -2463,6 +2828,7 @@ const adminHtml = (certificates, message = '', error = '') => {
     async function executeImport() {
       if (parsedRows.length === 0) return;
       
+      showLoading("Importing and storing spreadsheet data... Please wait");
       const btn = document.getElementById('executeImportBtn');
       btn.disabled = true;
       btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Importing & Saving... Please wait';
@@ -2475,6 +2841,7 @@ const adminHtml = (certificates, message = '', error = '') => {
         const currentYear = new Date().getFullYear();
         let nextIndex = lastIndex + 1;
         
+        const batchTemplate = document.getElementById('batchTemplate').value || 'classic';
         const certificatesToStore = parsedRows.map((row, idx) => {
           const certIndex = String(nextIndex + idx).padStart(6, '0');
           const certificate_no = \`ATPS/\${currentYear}/\${certIndex}\`;
@@ -2493,7 +2860,8 @@ const adminHtml = (certificates, message = '', error = '') => {
             place: row.place || 'Chennai',
             authorized_signatory: 'K. Rohini',
             signatory_designation: 'Founder',
-            certificate_type: batchType
+            certificate_type: batchType,
+            template: batchTemplate
           };
         });
         
@@ -2512,12 +2880,14 @@ const adminHtml = (certificates, message = '', error = '') => {
           alert('Error importing certificates: ' + (errData.error || 'Unknown error'));
           btn.disabled = false;
           btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
+          hideLoading();
         }
       } catch(err) {
         console.error(err);
         alert('Import failed: ' + err.message);
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
+        hideLoading();
       }
     }
 
@@ -2533,6 +2903,26 @@ const adminHtml = (certificates, message = '', error = '') => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+  </script>
+
+  <!-- DYNAMIC LOADING OVERLAY -->
+  <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <div id="loadingText" style="font-size: 16px; font-weight: 600; font-family: 'Outfit', sans-serif;">Processing... Please wait</div>
+  </div>
+
+  <script>
+    function showLoading(text) {
+      const overlay = document.getElementById('loadingOverlay');
+      if (text) {
+        document.getElementById('loadingText').innerText = text;
+      }
+      overlay.style.display = 'flex';
+    }
+    function hideLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.style.display = 'none';
     }
   </script>
 </body>
@@ -2629,6 +3019,15 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     };
 
     const dateParts = formattedData.issue_date_formatted.split(' ');
+
+    const themeClassMap = {
+      'classic': 'theme-classic-gold',
+      'blue': 'theme-ocean-blue',
+      'maroon': 'theme-royal-maroon',
+      'forest': 'theme-forest-green',
+      'purple': 'theme-purple-royal'
+    };
+    const certThemeClass = themeClassMap[row.template || 'classic'] || 'theme-classic-gold';
 
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -3394,7 +3793,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   </div>
 
   <!-- Certificate Container -->
-  <div class="cert-container theme-classic-gold">
+  <div class="cert-container ${certThemeClass}">
     
     <!-- Borders -->
     <div class="border-outer"></div>
@@ -3578,8 +3977,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   <!-- Dynamic QR Code Script -->
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      const currentHost = window.location.protocol + "//" + window.location.host;
-      const verifyUrl = currentHost + "/verify?cert=" + encodeURIComponent("${formattedData.certificate_no}");
+      const verifyUrl = "https://aadhira.onrender.com/verify?cert=" + encodeURIComponent("${formattedData.certificate_no}");
       
       const qrcodeEl = document.getElementById("qrcode-${formattedData.id}");
       if (qrcodeEl) {
@@ -3594,7 +3992,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       }
 
       // Initialize Theme preference
-      const savedTheme = localStorage.getItem('certThemePreference') || 'theme-classic-gold';
+      const savedTheme = "${certThemeClass}";
       setTheme(savedTheme);
     });
 
@@ -3628,15 +4026,6 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   }
 });
 
-// Route: Serve secure generator
-fastify.get('/generator', { preHandler: checkAuth }, async (request, reply) => {
-  try {
-    const html = fs.readFileSync(path.join(__dirname, 'certificate-generator.html'), 'utf8');
-    reply.type('text/html').send(html);
-  } catch(err) {
-    reply.status(500).send('Error loading generator HTML');
-  }
-});
 
 // Route: Get Admin Panel
 fastify.get('/admin', { preHandler: checkAuth }, async (request, reply) => {
@@ -3653,7 +4042,7 @@ fastify.get('/admin', { preHandler: checkAuth }, async (request, reply) => {
 });
 
 // Action: Get the highest certificate ID sequence
-fastify.get('/api/last-cert-id', async (request, reply) => {
+fastify.get('/api/last-cert-id', { preHandler: checkAuth }, async (request, reply) => {
   try {
     const res = await pool.query(`
       SELECT certificate_no FROM certificates 
@@ -3677,7 +4066,7 @@ fastify.get('/api/last-cert-id', async (request, reply) => {
 });
 
 // Action: Bulk Store Certificates via API
-fastify.post('/api/store-certificates', async (request, reply) => {
+fastify.post('/api/store-certificates', { preHandler: checkAuth }, async (request, reply) => {
   const certs = request.body.certificates || [];
   let added = 0;
   let skipped = 0;
@@ -3700,18 +4089,18 @@ fastify.post('/api/store-certificates', async (request, reply) => {
         [c.student_name, c.domain]
       );
       if (checkDup.rows.length === 0) {
-        logDbMessage(`Inserting certificate for student: ${c.student_name}, ID: ${c.certificate_no}`);
         await pool.query(`
           INSERT INTO certificates (
             certificate_no, student_name, email, college_name, degree, domain, 
             duration, start_date, end_date, issue_date, place, 
-            authorized_signatory, signatory_designation, certificate_type, created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+            authorized_signatory, signatory_designation, certificate_type, template, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
         `, [
           c.certificate_no, c.student_name, c.email || null, c.college_name, c.degree, c.domain,
           c.duration, parsedStartDate, parsedEndDate, parsedIssueDate, c.place,
           c.authorized_signatory || 'K. Rohini', c.signatory_designation || 'Director, ATPS',
-          (c.certificate_type || 'INTERNSHIP').toUpperCase()
+          (c.certificate_type || 'INTERNSHIP').toUpperCase(),
+          c.template || 'classic'
         ]);
         added++;
         logDbMessage(`Successfully stored certificate ${c.certificate_no} for ${c.student_name}.`);
@@ -3756,7 +4145,8 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
     place,
     authorized_signatory,
     signatory_designation,
-    certificate_type
+    certificate_type,
+    template
   } = request.body;
 
   const finalDegree = year && year.trim() ? `${degree} - ${year.trim()}` : degree;
@@ -3776,8 +4166,8 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
       INSERT INTO certificates (
         certificate_no, student_name, email, college_name, degree, domain, 
         duration, start_date, end_date, issue_date, place, 
-        authorized_signatory, signatory_designation, certificate_type
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        authorized_signatory, signatory_designation, certificate_type, template
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     `, [
       certificate_no,
       student_name,
@@ -3792,7 +4182,8 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
       place,
       authorized_signatory,
       signatory_designation,
-      (certificate_type || 'INTERNSHIP').toUpperCase()
+      (certificate_type || 'INTERNSHIP').toUpperCase(),
+      template || 'classic'
     ]);
 
     logDbMessage(`Manual creation succeeded for student: ${student_name}, ID: ${certificate_no}`);
@@ -3933,7 +4324,8 @@ fastify.post('/admin/update', { preHandler: checkAuth }, async (request, reply) 
     issue_date,
     place,
     authorized_signatory,
-    signatory_designation
+    signatory_designation,
+    template
   } = request.body;
 
   try {
@@ -3954,7 +4346,8 @@ fastify.post('/admin/update', { preHandler: checkAuth }, async (request, reply) 
         issue_date = $10,
         place = $11,
         authorized_signatory = $12,
-        signatory_designation = $13
+        signatory_designation = $13,
+        template = $14
       WHERE certificate_no = $1
     `, [
       certificate_no,
@@ -3969,7 +4362,8 @@ fastify.post('/admin/update', { preHandler: checkAuth }, async (request, reply) 
       parsedIssueDate,
       place,
       authorized_signatory,
-      signatory_designation
+      signatory_designation,
+      template || 'classic'
     ]);
 
     logDbMessage(`Manual update succeeded for student: ${student_name}, ID: ${certificate_no}`);
@@ -4114,7 +4508,7 @@ async function generateAndEmailCertificate(certificateNo, studentName, recipient
 }
 
 // Action: Send certificate email via Brevo SMTP API
-fastify.post('/api/send-email', async (request, reply) => {
+fastify.post('/api/send-email', { preHandler: checkAuth }, async (request, reply) => {
   const { email, studentName, pdfBase64, filename, certificateNo } = request.body || {};
 
   if (!email || !studentName || !pdfBase64) {
@@ -4207,6 +4601,7 @@ const start = async () => {
     console.log('Centered Logo header layout active!');
     console.log(`======================================================\n`);
   } catch (err) {
+    console.error('Fastify startup error:', err);
     fastify.log.error(err);
     process.exit(1);
   }
