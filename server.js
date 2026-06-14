@@ -4092,8 +4092,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     // Uses html2pdf.js to capture the certificate container element
     // and render it as a single-page landscape A4 PDF.
     function downloadPDF() {
+      const wrapper   = document.querySelector('.cert-wrapper');
       const container = document.querySelector('.cert-container');
-      const btn = document.querySelector('.btn-print');
+      const btn       = document.querySelector('.btn-print');
       if (!container || !btn) return;
 
       const originalHtml = btn.innerHTML;
@@ -4108,11 +4109,23 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         document.head.appendChild(style);
       }
 
-      // Save user's dynamic theme settings & other styles
+      // Save user's dynamic styles and viewport configurations
+      const prevBodyStyle      = document.body.getAttribute('style') || '';
+      const prevWrapperStyle   = wrapper ? (wrapper.getAttribute('style') || '') : '';
       const prevContainerStyle = container.getAttribute('style') || '';
 
       // Force absolute positioning, scale(1), and exact pixels during snapshot to bypass mobile scale constraints
-      container.setAttribute('style', 'width: 1122px !important; height: 793px !important; transform: none !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; position: relative !important;');
+      // Also temporarily override body & wrapper block widths to avoid centered overflow clipping at negative coordinates
+      document.body.style.width = '1122px';
+      document.body.style.minWidth = '1122px';
+      document.body.style.overflow = 'visible';
+      document.body.style.position = 'relative';
+
+      if (wrapper) {
+        wrapper.setAttribute('style', 'display: block !important; width: 1122px !important; min-width: 1122px !important; margin: 0 !important; padding: 0 !important; overflow: visible !important;');
+      }
+
+      container.setAttribute('style', 'width: 1122px !important; height: 793px !important; transform: none !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; position: relative !important; left: 0 !important; top: 0 !important; float: left !important;');
 
       // Force viewport meta tag to simulate 1122px width to avoid mobile scaling/layout issues during capture
       const metaViewport = document.querySelector('meta[name="viewport"]');
@@ -4146,6 +4159,18 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           metaViewport.setAttribute('content', originalViewport);
         }
         // Restore screen styles
+        if (prevBodyStyle) {
+          document.body.setAttribute('style', prevBodyStyle);
+        } else {
+          document.body.removeAttribute('style');
+        }
+        if (wrapper) {
+          if (prevWrapperStyle) {
+            wrapper.setAttribute('style', prevWrapperStyle);
+          } else {
+            wrapper.removeAttribute('style');
+          }
+        }
         if (prevContainerStyle) {
           container.setAttribute('style', prevContainerStyle);
         } else {
@@ -4159,6 +4184,18 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         // Restore viewport meta
         if (metaViewport && originalViewport) {
           metaViewport.setAttribute('content', originalViewport);
+        }
+        if (prevBodyStyle) {
+          document.body.setAttribute('style', prevBodyStyle);
+        } else {
+          document.body.removeAttribute('style');
+        }
+        if (wrapper) {
+          if (prevWrapperStyle) {
+            wrapper.setAttribute('style', prevWrapperStyle);
+          } else {
+            wrapper.removeAttribute('style');
+          }
         }
         if (prevContainerStyle) {
           container.setAttribute('style', prevContainerStyle);
