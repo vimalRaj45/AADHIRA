@@ -4091,6 +4091,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     // ── Client-side PDF Generation helper ────────────────────
     // Uses html2pdf.js to capture the certificate container element
     // and render it as a single-page landscape A4 PDF.
+    // ── Client-side PDF Generation helper ────────────────────
+    // Uses html2canvas and jsPDF directly to capture the reflowed layout
+    // and render it as a single-page landscape A4 PDF.
     function downloadPDF() {
       const wrapper   = document.querySelector('.cert-wrapper');
       const container = document.querySelector('.cert-container');
@@ -4134,11 +4137,12 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         metaViewport.setAttribute('content', 'width=1122, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
       }
 
-      const opt = {
-        margin:       0,
-        filename:     'Certificate_${formattedData.student_name.replace(/\\s+/g, '_')}.pdf',
-        image:        { type: 'jpeg', quality: 1.0 },
-        html2canvas:  { 
+      // Scroll to top-left to ensure scroll offsets don't mess with html2canvas positioning
+      window.scrollTo(0, 0);
+
+      // Wait 150ms for browser to complete reflowing layout before taking snapshot
+      setTimeout(function() {
+        html2canvas(container, {
           scale: 2,           // Boost canvas DPI for ultra-sharp rendering
           useCORS: true,      // Enable cross-origin resource sharing for fonts and external images
           logging: false,
@@ -4148,12 +4152,30 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           height: 793,
           windowWidth: 1122,
           windowHeight: 793
-        },
-        jsPDF:        { unit: 'px', format: [1122, 793], hotfixes: ['px_scaling'] }
-      };
+        }).then(canvas => {
+          const imgData = canvas.toDataURL('image/jpeg', 1.0);
+          
+          // Access jsPDF class from the bundled html2pdf dependencies
+          const { jsPDF } = window.jspdf || window;
+          const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [1122, 793]
+          });
+          
+          pdf.addImage(imgData, 'JPEG', 0, 0, 1122, 793);
+          pdf.save('Certificate_${formattedData.student_name.replace(/\\s+/g, '_')}.pdf');
 
-      // Generate PDF on client-side
-      html2pdf().set(opt).from(container).save().then(() => {
+          // Restore styles
+          restoreStyles();
+        }).catch(err => {
+          console.error('PDF generation failed:', err);
+          alert('Failed to generate PDF. Please try again.');
+          restoreStyles();
+        });
+      }, 150);
+
+      function restoreStyles() {
         // Restore viewport meta
         if (metaViewport && originalViewport) {
           metaViewport.setAttribute('content', originalViewport);
@@ -4178,33 +4200,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         }
         btn.disabled = false;
         btn.innerHTML = originalHtml;
-      }).catch(err => {
-        console.error('PDF generation failed:', err);
-        alert('Failed to generate PDF. Please try again.');
-        // Restore viewport meta
-        if (metaViewport && originalViewport) {
-          metaViewport.setAttribute('content', originalViewport);
-        }
-        if (prevBodyStyle) {
-          document.body.setAttribute('style', prevBodyStyle);
-        } else {
-          document.body.removeAttribute('style');
-        }
-        if (wrapper) {
-          if (prevWrapperStyle) {
-            wrapper.setAttribute('style', prevWrapperStyle);
-          } else {
-            wrapper.removeAttribute('style');
-          }
-        }
-        if (prevContainerStyle) {
-          container.setAttribute('style', prevContainerStyle);
-        } else {
-          container.removeAttribute('style');
-        }
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-      });
+      }
     }
   </script>
 
