@@ -3761,48 +3761,73 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       border: 1px solid rgba(0,0,0,0.1);
     }
 
-    /* Print styling rules */
+    /* ── Print / PDF Export ─────────────────────────────── */
+    @page {
+      size: 297mm 210mm;   /* exact A4 landscape */
+      margin: 0mm;
+    }
+
     @media print {
-      html, body {
-        background: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 297mm !important;
+      /* Hard-lock root elements to exactly one A4 landscape page */
+      html {
+        width:  297mm !important;
         height: 210mm !important;
-        min-height: 210mm !important;
-        display: block !important;
+        max-height: 210mm !important;
         overflow: hidden !important;
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
 
-      .cert-wrapper {
-        display: contents !important;
-      }
-
-      .cert-container {
-        width: 297mm !important;
+      body {
+        width:  297mm !important;
         height: 210mm !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
+        max-height: 210mm !important;
+        overflow: hidden !important;
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        min-height: unset !important;
+      }
+
+      /* Collapse the scaling wrapper */
+      .cert-wrapper {
+        display: block !important;
+        width:  297mm !important;
+        height: 210mm !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* Certificate fills the page exactly */
+      .cert-container {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
+        width:  297mm !important;
+        height: 210mm !important;
+        max-height: 210mm !important;
         margin: 0 !important;
         padding: 40px !important;
-        page-break-after: always !important;
+        transform: none !important;
+        transform-origin: unset !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        overflow: hidden !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        transform: none !important;
-        margin-bottom: 0 !important;
       }
 
-      .no-print {
+      /* Hide all non-certificate UI */
+      .no-print,
+      .controls,
+      .theme-switcher-bar {
         display: none !important;
       }
-    }
-
-    @page {
-      size: A4 landscape;
-      margin: 0;
     }
   </style>
 </head>
@@ -4007,13 +4032,13 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
   <!-- Print Button (Hidden on Print) -->
   <div class="controls no-print">
-    <button class="btn btn-print" onclick="window.print()">
+    <button class="btn btn-print" onclick="preparePrint()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="6 9 6 2 18 2 18 9"></polyline>
         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
         <rect x="6" y="14" width="12" height="8"></rect>
       </svg>
-      Print to PDF
+      Download PDF
     </button>
     <a class="btn btn-back" href="/admin">
       Admin Panel
@@ -4059,6 +4084,51 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       });
       
       localStorage.setItem('certThemePreference', themeName);
+    }
+
+    // ── PDF Download helper ──────────────────────────────────
+    // Strips the responsive CSS scale-transform before printing so the
+    // browser sees a real 297mm×210mm element and outputs exactly ONE
+    // A4 landscape page with zero blank space beneath the certificate.
+    function preparePrint() {
+      const wrapper   = document.querySelector('.cert-wrapper');
+      const container = document.querySelector('.cert-container');
+      if (!wrapper || !container) { window.print(); return; }
+
+      // ── Save current inline styles ──
+      const prevWrapperStyle    = wrapper.getAttribute('style')   || '';
+      const prevContainerStyle  = container.getAttribute('style') || '';
+      const prevBodyOverflow    = document.body.style.overflow;
+      const prevBodyBg          = document.body.style.background;
+
+      // ── Apply exact A4 landscape pixel dimensions (96 dpi) ──
+      // 297mm × 210mm  →  1122px × 794px  (at 96 dpi)
+      const W = 1122, H = 794;
+
+      wrapper.setAttribute('style',
+        'display:block;width:' + W + 'px;height:' + H + 'px;overflow:hidden;margin:0;padding:0;');
+      container.setAttribute('style',
+        'position:absolute;top:0;left:0;width:' + W + 'px;height:' + H + 'px;' +
+        'transform:none;margin:0;border-radius:0;box-shadow:none;overflow:hidden;');
+      document.body.style.overflow  = 'hidden';
+      document.body.style.background = 'white';
+
+      // ── Small delay lets the browser reflow before dialog opens ──
+      requestAnimationFrame(function() {
+        setTimeout(function() {
+          window.print();
+
+          // ── Restore screen state after dialog closes ──
+          setTimeout(function() {
+            if (prevWrapperStyle)   wrapper.setAttribute('style', prevWrapperStyle);
+            else                    wrapper.removeAttribute('style');
+            if (prevContainerStyle) container.setAttribute('style', prevContainerStyle);
+            else                    container.removeAttribute('style');
+            document.body.style.overflow  = prevBodyOverflow;
+            document.body.style.background = prevBodyBg;
+          }, 500);
+        }, 80);
+      });
     }
   </script>
 
