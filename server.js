@@ -3186,12 +3186,22 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       justify-content: center;
       min-height: 100vh;
       padding: 20px;
+      overflow-x: hidden; /* Prevent horizontal scrolling on mobile */
+    }
+
+    /* Wrapper to scale and center the certificate on small viewports */
+    .cert-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      overflow: visible;
     }
 
     /* Fixed Landscape A4 Dimensions for Preview */
     .cert-container {
-      width: 297mm;
-      height: 210mm;
+      width: 1122px;
+      height: 793px;
       background: var(--paper);
       position: relative;
       overflow: hidden;
@@ -3202,6 +3212,21 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       justify-content: space-between;
       padding: 40px;
       transition: background 0.3s ease;
+    }
+
+    /* Responsive scaling for mobile viewports */
+    @media (max-width: 1200px) {
+      .cert-wrapper {
+        min-height: auto;
+        height: auto;
+        padding: 0;
+        overflow: hidden;
+      }
+      .cert-container {
+        transform-origin: top center;
+        transform: scale(calc(90vw / 1122px));
+        margin-bottom: calc(-793px * (1 - (90vw / 1122px)));
+      }
     }
 
     /* Outer Borders */
@@ -3729,27 +3754,36 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     /* Print styling rules */
     @media print {
-      body {
-        background: none;
-        padding: 0;
-        margin: 0;
-        width: 297mm;
-        height: 210mm;
+      html, body {
+        background: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 297mm !important;
+        height: 210mm !important;
+        min-height: 210mm !important;
+        display: block !important;
+        overflow: hidden !important;
+      }
+
+      .cert-wrapper {
+        display: contents !important;
       }
 
       .cert-container {
-        width: 297mm;
-        height: 210mm;
-        box-shadow: none;
-        border-radius: 0;
-        position: absolute;
-        top: 0;
-        left: 0;
-        margin: 0;
-        padding: 40px;
-        page-break-after: always;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        width: 297mm !important;
+        height: 210mm !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        margin: 0 !important;
+        padding: 40px !important;
+        page-break-after: always !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        transform: none !important;
+        margin-bottom: 0 !important;
       }
 
       .no-print {
@@ -3792,8 +3826,10 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     </div>
   </div>
 
-  <!-- Certificate Container -->
-  <div class="cert-container ${certThemeClass}">
+  <!-- Certificate Container Wrapper -->
+  <div class="cert-wrapper">
+    <!-- Certificate Container -->
+    <div class="cert-container ${certThemeClass}">
     
     <!-- Borders -->
     <div class="border-outer"></div>
@@ -3957,6 +3993,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     </div>
 
+  </div>
   </div>
 
   <!-- Print Button (Hidden on Print) -->
