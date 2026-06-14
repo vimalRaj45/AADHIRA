@@ -210,9 +210,9 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
     .logo-aadhira {
       background-position: 0% 0%;
-      width: 70px;
-      height: 70px;
-      margin-bottom: 2px;
+      width: 60px;
+      height: 60px;
+      margin-bottom: 0px;
     }
 
     .company-subtitle {
@@ -221,8 +221,8 @@ const certTemplate = (data) => `<!DOCTYPE html>
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 2px;
-      margin-top: 2px;
-      margin-bottom: 6px;
+      margin-top: 0px;
+      margin-bottom: 5px;
     }
 
     /* Center-Aligned Accreditation Badges */
@@ -235,24 +235,24 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
     .logo-iso {
       background-position: 33.33% 0%;
-      width: 70px;
-      height: 70px;
+      width: 60px;
+      height: 60px;
     }
 
     .logo-arms {
       background-position: 66.66% 0%;
-      width: 70px;
-      height: 70px;
+      width: 60px;
+      height: 60px;
     }
 
     .logo-uk {
       background-position: 100% 0%;
-      width: 70px;
-      height: 70px;
+      width: 60px;
+      height: 60px;
     }
 
     .logo-msme {
-      height: 70px;
+      height: 60px;
       mix-blend-mode: multiply;
       object-fit: contain;
     }
@@ -272,7 +272,7 @@ const certTemplate = (data) => `<!DOCTYPE html>
       text-align: center;
       z-index: 2;
       position: relative;
-      margin-top: 5px;
+      margin-top: 0px;
       margin-bottom: 5px;
     }
 

@@ -69,6 +69,16 @@ function parseDateForDb(dateStr) {
   return null;
 }
 
+function formatDateForInput(dateInput) {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function logDbMessage(message) {
   try {
     const timestamp = new Date().toISOString();
@@ -648,466 +658,1883 @@ const verifyHtml = (certNo, student, success) => {
 
 // Page: Admin Dashboard
 const adminHtml = (certificates, message = '', error = '') => {
-  const tableRows = certificates.map(c => `
-    <tr>
-      <td style="font-family: monospace; font-weight: 700; color: #D97706;">${c.certificate_no}</td>
-      <td style="font-weight: 600; color: white;">${c.student_name}</td>
-      <td>${c.college_name}</td>
-      <td><span class="domain-tag">${c.domain}</span></td>
-      <td>${c.duration}</td>
-      <td style="text-align: right;">
-        <a href="/certificate/${c.certificate_no.replace(/\//g, '_')}" target="_blank" class="action-btn view-btn">View HTML</a>
-        <a href="/verify?cert=${c.certificate_no}" target="_blank" class="action-btn verify-btn">Verify Portal</a>
-      </td>
-    </tr>
-  `).join('');
+  // Pre-process dates to YYYY-MM-DD for input values
+  const processedCerts = certificates.map(c => ({
+    ...c,
+    start_date_input: formatDateForInput(c.start_date),
+    end_date_input: formatDateForInput(c.end_date),
+    issue_date_input: formatDateForInput(c.issue_date)
+  }));
+
+  const certificatesJson = JSON.stringify(processedCerts);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - Certificate Control Room - ATPS</title>
+  <title>Admin Dashboard - ATPS Certificate Control Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
   <style>
     :root {
-      --bg: #0A0F1D;
-      --card: #151D30;
-      --navy: #0A192F;
+      --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      --sidebar-bg: #0f172a;
+      --card-bg: #ffffff;
+      --card-border: rgba(15, 23, 42, 0.08);
       --gold: #D97706;
       --gold-light: #F5A623;
-      --text: #F8F9FA;
-      --border: rgba(255,255,255,0.06);
+      --gold-hover: #B45309;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #eff6ff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --success: #10B981;
+      --danger: #EF4444;
+      --sidebar-width: 280px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      background-color: var(--bg);
-      font-family: 'Montserrat', sans-serif;
-      color: var(--text);
+      background: var(--bg-gradient);
+      font-family: 'Outfit', sans-serif;
+      color: var(--text-main);
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
+      overflow-x: hidden;
     }
-    header {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 20px 40px;
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(37, 99, 235, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(37, 99, 235, 0.5);
+    }
+
+    /* SIDEBAR */
+    aside {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--card-border);
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      transition: all 0.3s ease;
     }
-    .logo-block {
+
+    .brand-section {
+      padding: 30px 24px;
       display: flex;
       align-items: center;
       gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .logo-svg {
-      width: 32px;
-      height: 32px;
-      fill: var(--gold);
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      fill: var(--gold-light);
+      color: #fff;
     }
-    .logo-text {
+
+    .brand-title {
       font-family: 'Cinzel', serif;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 800;
-      color: white;
+      letter-spacing: 1px;
+      color: #fff;
     }
-    .header-nav {
+
+    .brand-subtitle {
+      font-size: 9px;
+      color: var(--gold-light);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+
+    .menu-section {
+      padding: 30px 16px;
       display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-    .btn-portal-link {
-      color: #94A3B8;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
-      transition: color 0.3s;
-    }
-    .btn-portal-link:hover {
-      color: white;
-    }
-    .container {
-      max-width: 1300px;
-      width: 100%;
-      margin: 40px auto;
-      padding: 0 20px;
+      flex-direction: column;
+      gap: 8px;
       flex: 1;
     }
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 14.5px;
+      border-radius: 10px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .sidebar-link i {
+      font-size: 18px;
+    }
+
+    .sidebar-link:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .sidebar-link.active {
+      color: #fff;
+      background: var(--accent-blue);
+      border-color: rgba(255, 255, 255, 0.1);
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.2);
+    }
+
+    .sidebar-footer {
+      padding: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      font-family: inherit;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .logout-btn:hover {
+      background: var(--danger);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+    }
+
+    /* MAIN CONTENT */
+    main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 40px;
+      min-width: 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 35px;
     }
+
+    .page-info h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .page-info p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .live-time {
+      font-size: 13px;
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      padding: 8px 16px;
+      border-radius: 30px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: monospace;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+
+    .live-time i {
+      color: var(--accent-blue);
+    }
+
+    .public-portal-btn {
+      text-decoration: none;
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 8px 20px;
+      border-radius: 30px;
+      transition: all 0.25s;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+
+    .public-portal-btn:hover {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* ALERTS */
+    .alert {
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      font-weight: 600;
+      font-size: 14.5px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+
+    .alert-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+
+    /* TAB CHANGER STUFF */
+    .tab-panel {
+      animation: fadeIn 0.4s ease;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* STATS CARDS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-bottom: 35px;
+    }
+
     .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 22px 25px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.03);
     }
+
     .stat-card::after {
       content: '';
       position: absolute;
-      top: 0;
       left: 0;
-      width: 3px;
+      top: 0;
+      width: 4px;
       height: 100%;
-      background: var(--gold);
+      background: var(--accent-blue);
     }
+
+    .stat-card.stat-green::after { background: var(--success); }
+    .stat-card.stat-blue::after { background: #3B82F6; }
+    .stat-card.stat-purple::after { background: #A78BFA; }
+
+    .stat-data {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
     .stat-label {
-      font-size: 10px;
+      font-size: 11.5px;
       text-transform: uppercase;
-      color: #64748B;
+      color: var(--text-muted);
       font-weight: 700;
       letter-spacing: 1.5px;
-      margin-bottom: 6px;
-      display: block;
     }
+
     .stat-value {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 700;
-      color: white;
+      color: var(--text-main);
     }
 
-    /* Alerts */
-    .alert {
-      padding: 15px 20px;
-      border-radius: 6px;
-      margin-bottom: 25px;
-      font-weight: 600;
-      font-size: 14px;
-    }
-    .alert-success {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid #10B981;
-      color: #10B981;
-    }
-    .alert-danger {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid #EF4444;
-      color: #EF4444;
+    .stat-icon {
+      font-size: 32px;
+      color: rgba(15, 23, 42, 0.1);
+      transition: all 0.3s;
     }
 
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 30px;
+    .stat-card:hover .stat-icon {
+      color: var(--accent-blue);
+      transform: scale(1.1);
     }
 
-    /* Content Cards */
+    /* CARD STRUCTURES */
     .dashboard-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
       padding: 30px;
       margin-bottom: 30px;
+      box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.03);
     }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 14px;
+    }
+
     .card-title {
       font-family: 'Cinzel', serif;
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 700;
-      margin-bottom: 20px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 12px;
-      color: white;
+      color: var(--text-main);
       letter-spacing: 0.5px;
       display: flex;
       align-items: center;
+      gap: 10px;
+    }
+
+    .card-title i {
+      color: var(--accent-blue);
+    }
+
+    /* CONTROLS BAR */
+    .filters-bar {
+      display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
     }
 
-    /* Forms */
-    .form-group {
-      margin-bottom: 18px;
+    .search-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 400px;
     }
-    .form-group label {
-      display: block;
-      font-size: 11px;
-      font-weight: 700;
-      color: #94A3B8;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 6px;
+
+    .search-wrapper i {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 16px;
     }
-    .form-control {
+
+    .search-input {
       width: 100%;
-      background: rgba(10, 25, 47, 0.4);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 4px;
-      padding: 10px 14px;
-      color: white;
-      font-family: inherit;
-      font-size: 13.5px;
-      transition: all 0.3s;
-    }
-    .form-control:focus {
+      background: #ffffff;
+      border: 1.5px solid var(--card-border);
+      border-radius: 30px;
+      padding: 12px 16px 12px 48px;
+      color: var(--text-main);
+      font-size: 14.5px;
       outline: none;
-      border-color: var(--gold);
-      box-shadow: 0 0 8px rgba(217, 119, 6, 0.2);
-    }
-    .submit-btn {
-      width: 100%;
-      background: linear-gradient(135deg, var(--gold), #B45309);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 12px;
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
       transition: all 0.3s;
     }
-    .submit-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 15px rgba(217, 119, 6, 0.35);
+
+    .search-input:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 12px rgba(37, 99, 235, 0.1);
     }
 
-    /* Tables */
+    .filter-options {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .select-input {
+      background: #ffffff;
+      border: 1.5px solid var(--card-border);
+      border-radius: 8px;
+      padding: 11px 16px;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .select-input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    /* TABLES */
     .table-container {
       overflow-x: auto;
+      width: 100%;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       text-align: left;
-      font-size: 13.5px;
-    }
-    th {
-      background: rgba(10,25,47,0.3);
-      padding: 14px 18px;
-      font-weight: 700;
-      font-size: 10.5px;
-      text-transform: uppercase;
-      color: #64748B;
-      letter-spacing: 1px;
-      border-bottom: 2px solid var(--border);
-    }
-    td {
-      padding: 16px 18px;
-      border-bottom: 1px solid var(--border);
-      color: #94A3B8;
-      vertical-align: middle;
-    }
-    tr:hover td {
-      background: rgba(255,255,255,0.01);
-    }
-    .domain-tag {
-      background: rgba(217,119,6,0.1);
-      border: 1px solid rgba(217,119,6,0.25);
-      color: var(--gold-light);
-      padding: 3px 10px;
-      border-radius: 50px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .action-btn {
-      display: inline-block;
-      font-size: 11.5px;
-      font-weight: 700;
-      text-decoration: none;
-      padding: 5px 12px;
-      border-radius: 4px;
-      transition: all 0.3s;
-      margin-left: 5px;
-    }
-    .view-btn {
-      background: rgba(217,119,6,0.1);
-      color: var(--gold-light);
-      border: 1px solid rgba(217,119,6,0.2);
-    }
-    .view-btn:hover {
-      background: var(--gold);
-      color: white;
-    }
-    .verify-btn {
-      background: rgba(255,255,255,0.05);
-      color: #94A3B8;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .verify-btn:hover {
-      background: white;
-      color: var(--navy);
+      font-size: 14px;
     }
 
-    .instructions {
-      font-size: 12px;
-      color: #64748B;
-      line-height: 1.6;
-      background: rgba(10, 25, 47, 0.4);
-      padding: 15px;
-      border-radius: 6px;
-      border-left: 3px solid var(--gold);
-      margin-top: 10px;
+    th {
+      background: #f8fafc;
+      padding: 16px 20px;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      border-bottom: 2px solid var(--card-border);
     }
-    .instructions code {
-      color: var(--gold-light);
-      background: rgba(0,0,0,0.2);
-      padding: 2px 4px;
-      border-radius: 3px;
+
+    td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--card-border);
+      color: #334155;
+      vertical-align: middle;
+      transition: all 0.2s;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+      color: var(--text-main);
+    }
+
+    .domain-tag {
+      background: rgba(37, 99, 235, 0.08);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      color: var(--accent-blue);
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.02);
+      cursor: pointer;
+      transition: all 0.25s;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .view-btn:hover {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .edit-btn:hover {
+      background: rgba(37, 99, 235, 0.1);
+      border-color: rgba(37, 99, 235, 0.2);
+      color: var(--accent-blue);
+    }
+
+    .delete-btn:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+
+    /* PAGINATION */
+    .pagination-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      border-top: 1px solid var(--card-border);
+      padding-top: 18px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .pagination-info {
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+
+    .pagination-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pag-btn {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .pag-btn:hover:not(:disabled) {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .pag-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* FORMS */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .form-control {
+      width: 100%;
+      background: #ffffff;
+      border: 1.5px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 10px rgba(37, 99, 235, 0.15);
+    }
+
+    .submit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 14.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+      transition: all 0.3s;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+    }
+
+    .instructions-box {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent-blue);
+      margin-top: 20px;
+    }
+
+    .instructions-box code {
+      color: var(--accent-blue);
+      background: #eff6ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    /* MODAL POPUPS */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);
+      animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-small {
+      max-width: 480px;
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0.96); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 20px;
+      transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+      color: var(--text-main);
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      color: var(--text-main);
+    }
+
+    .modal-footer {
+      padding: 20px 24px;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: #f8fafc;
+      color: var(--text-main);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    }
+
+    .btn-danger:hover {
+      background: #DC2626;
+      transform: translateY(-1px);
+    }
+
+    /* DOMAIN LIST BREAKDOWN OVERVIEW */
+    .domain-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .domain-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid var(--card-border);
+      padding: 12px 18px;
+      border-radius: 8px;
+    }
+
+    .domain-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .domain-bullet {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+    }
+
+    .domain-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .domain-count {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--accent-blue);
+      background: rgba(37, 99, 235, 0.08);
+      padding: 2px 10px;
+      border-radius: 30px;
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
+
+    @media (max-width: 992px) {
+      body { flex-direction: column; }
+      aside {
+        width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+      }
+      .brand-section { padding: 20px; }
+      .menu-section {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 10px 20px;
+        gap: 10px;
+      }
+      .sidebar-link {
+        white-space: nowrap;
+        padding: 10px 16px;
+      }
+      .sidebar-footer { display: none; }
+      main { margin-left: 0; padding: 24px; }
+      header { flex-direction: column; align-items: flex-start; gap: 20px; }
+      .header-actions { width: 100%; justify-content: space-between; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo-block">
-      <svg class="logo-svg" viewBox="0 0 120 120">
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside>
+    <div class="brand-section">
+      <svg class="brand-logo" viewBox="0 0 120 120">
         <circle cx="60" cy="60" r="55" fill="none" stroke="currentColor" stroke-width="6"/>
         <path d="M60 22 L92 88 L75 88 L60 54 L45 88 L28 88 Z" fill="currentColor"/>
       </svg>
-      <span class="logo-text">ATPS Control Room</span>
+      <div>
+        <span class="brand-title">ATPS Panel</span>
+        <div class="brand-subtitle">Control Room</div>
+      </div>
     </div>
-    <div class="header-nav">
-      <a href="/" class="btn-portal-link">Public Search Portal</a>
-    </div>
-  </header>
-
-  <div class="container">
     
-    <!-- Stats Row -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <span class="stat-label">Certificates Issued</span>
-        <span class="stat-value">${certificates.length}</span>
+    <div class="menu-section">
+      <div class="sidebar-link active" id="link-overview" onclick="switchTab('overview')">
+        <i class="bi bi-grid-1x2-fill"></i>
+        <span>Overview</span>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Active Domains</span>
-        <span class="stat-value">${new Set(certificates.map(c => c.domain)).size}</span>
+      <div class="sidebar-link" id="link-certificates" onclick="switchTab('certificates')">
+        <i class="bi bi-file-earmark-richtext-fill"></i>
+        <span>Certificates Database</span>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Institutions</span>
-        <span class="stat-value">${new Set(certificates.map(c => c.college_name)).size}</span>
+      <div class="sidebar-link" id="link-issue" onclick="switchTab('issue')">
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Issue Credential</span>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Service Account Status</span>
-        <span class="stat-value" style="font-size:16px; color:#10B981; font-weight:700;">● Active Ready</span>
+      <div class="sidebar-link" id="link-sync" onclick="switchTab('sync')">
+        <i class="bi bi-file-earmark-arrow-up-fill"></i>
+        <span>CSV / Excel Import</span>
       </div>
     </div>
+    
+    <div class="sidebar-footer">
+      <a href="/login" class="logout-btn">
+        <i class="bi bi-box-arrow-left"></i>
+        <span>Logout Admin</span>
+      </a>
+    </div>
+  </aside>
 
-    <!-- Message Alerts -->
-    ${message ? `<div class="alert alert-success">${message}</div>` : ''}
-    ${error ? `<div class="alert alert-danger">${error}</div>` : ''}
-
-    <div class="main-grid">
+  <!-- MAIN AREA -->
+  <main>
+    <header>
+      <div class="page-info">
+        <h1>ATPS Control Room</h1>
+        <p>Manage and generate authentic secure credentials for Aadhira trainees.</p>
+      </div>
       
-      <!-- Left side: List of certificates -->
-      <div class="dashboard-card" style="margin-bottom: 0;">
-        <div class="card-title">
-          <span>Active Issued Credentials</span>
-          <span style="font-size:11px; font-weight:500; font-family:sans-serif; color:#64748B;">Showing database rows</span>
+      <div class="header-actions">
+        <div class="live-time" id="clock-display">
+          <i class="bi bi-clock-fill"></i>
+          <span id="clock-time">16:25:00</span>
+        </div>
+        <a href="/" class="public-portal-btn" target="_blank">Public Search Portal</a>
+      </div>
+    </header>
+
+    <!-- ALERTS -->
+    ${message ? `<div class="alert alert-success" id="alert-banner"><i class="bi bi-check-circle-fill"></i> <span>${message}</span></div>` : ''}
+    ${error ? `<div class="alert alert-danger" id="alert-banner"><i class="bi bi-exclamation-triangle-fill"></i> <span>${error}</span></div>` : ''}
+
+    <!-- TAB: OVERVIEW -->
+    <div class="tab-panel" id="panel-overview">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-data">
+            <span class="stat-label">Total Issued</span>
+            <span class="stat-value">${certificates.length}</span>
+          </div>
+          <i class="bi bi-file-earmark-richtext stat-icon"></i>
         </div>
         
+        <div class="stat-card stat-green">
+          <div class="stat-data">
+            <span class="stat-label">Active Domains</span>
+            <span class="stat-value">${new Set(certificates.map(c => c.domain)).size}</span>
+          </div>
+          <i class="bi bi-tags stat-icon"></i>
+        </div>
+        
+        <div class="stat-card stat-blue">
+          <div class="stat-data">
+            <span class="stat-label">Institutions</span>
+            <span class="stat-value">${new Set(certificates.map(c => c.college_name)).size}</span>
+          </div>
+          <i class="bi bi-building stat-icon"></i>
+        </div>
+        
+        <div class="stat-card stat-purple">
+          <div class="stat-data">
+            <span class="stat-label">API Status</span>
+            <span class="stat-value" style="font-size:16px; color:#10B981;">Active Ready</span>
+          </div>
+          <i class="bi bi-cloud-check stat-icon"></i>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 360px; gap: 30px; align-items: start;">
+        <!-- Recent Certificates Table -->
+        <div class="dashboard-card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <div class="card-title"><i class="bi bi-clock-history"></i> Recent Activity</div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Certificate ID</th>
+                  <th>Student Name</th>
+                  <th>Institution</th>
+                  <th>Domain</th>
+                  <th>Issue Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${certificates.slice(0, 5).map(c => `
+                  <tr>
+                    <td style="font-family: monospace; font-weight:700; color:var(--accent-blue);">${c.certificate_no}</td>
+                    <td style="font-weight:600; color:var(--text-main);">${c.student_name}</td>
+                    <td>${c.college_name}</td>
+                    <td><span class="domain-tag">${c.domain}</span></td>
+                    <td>${formatDateForInput(c.issue_date)}</td>
+                  </tr>
+                `).join('') || '<tr><td colspan="5" style="text-align:center;">No records available.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Domains Breakdown sidebar -->
+        <div class="dashboard-card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <div class="card-title"><i class="bi bi-pie-chart-fill"></i> Domains Summary</div>
+          </div>
+          <div class="domain-list">
+            ${[...new Set(certificates.map(c => c.domain))].map(d => {
+              const count = certificates.filter(c => c.domain === d).length;
+              return `
+                <div class="domain-list-item">
+                  <div class="domain-info">
+                    <div class="domain-bullet"></div>
+                    <span class="domain-name">${d}</span>
+                  </div>
+                  <span class="domain-count">${count}</span>
+                </div>
+              `;
+            }).join('') || '<div style="color:var(--text-muted);">No domains registered yet.</div>'}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: CERTIFICATES DATABASE -->
+    <div class="tab-panel hidden" id="panel-certificates">
+      <div class="dashboard-card" style="margin-bottom: 0;">
+        <div class="card-header">
+          <div class="card-title"><i class="bi bi-file-earmark-richtext-fill"></i> Issued Credentials Registry</div>
+        </div>
+
+        <!-- Search and filters -->
+        <div class="filters-bar">
+          <div class="search-wrapper">
+            <i class="bi bi-search"></i>
+            <input type="text" id="search-input" class="search-input" placeholder="Search by ID, student, college, domain...">
+          </div>
+          
+          <div class="filter-options">
+            <select id="domain-filter" class="select-input">
+              <option value="all">All Domains</option>
+              ${[...new Set(certificates.map(c => c.domain))].map(d => `<option value="${d}">${d}</option>`).join('')}
+            </select>
+            
+            <select id="page-size-select" class="select-input">
+              <option value="10">10 Rows</option>
+              <option value="25">25 Rows</option>
+              <option value="50">50 Rows</option>
+              <option value="100">100 Rows</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table -->
         <div class="table-container">
           <table>
             <thead>
               <tr>
                 <th>Certificate ID</th>
                 <th>Student Name</th>
+                <th>Email Address</th>
                 <th>Institution</th>
                 <th>Domain</th>
                 <th>Duration</th>
+                <th>Issue Date</th>
                 <th style="text-align: right;">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              ${tableRows || '<tr><td colspan="6" style="text-align:center;">No certificate records in the database. Use sync or the form to add some!</td></tr>'}
+            <tbody id="certificates-table-body">
+              <!-- Rendered via client-side javascript pagination -->
             </tbody>
           </table>
         </div>
-      </div>
 
-      <!-- Right side: Sidebar controllers (Sync and Manual Input) -->
-      <div class="sidebar">
-        
-        <!-- Google Sheet Sync Widget -->
-        <div class="dashboard-card">
-          <div class="card-title">Google Sheets Sync</div>
-          <form action="/admin/sync" method="POST">
-            <div class="form-group">
-              <label>Spreadsheet ID</label>
-              <input type="text" name="spreadsheetId" class="form-control" placeholder="1aBcDeFgHiJkLmNoPqRsTuVwXyZ" required>
-            </div>
-            <div class="form-group">
-              <label>Sheet / Tab Name</label>
-              <input type="text" name="sheetName" class="form-control" placeholder="Sheet1" default="Sheet1" required>
-            </div>
-            <button type="submit" class="submit-btn" style="background: linear-gradient(135deg, #10B981, #047857); box-shadow: 0 4px 12px rgba(16,185,129,0.2);">Sync via Service Account</button>
-          </form>
-          
-          <div class="instructions">
-            <strong>How to Sync:</strong><br>
-            1. Share your Google Sheet with: <code style="font-size:9.5px; word-break:break-all;">adhira@adhira-496911.iam.gserviceaccount.com</code><br>
-            2. Make sure columns match: <br>
-            <code>certificate_no, student_name, college_name, degree, domain, duration, start_date, end_date, issue_date, place, authorized_signatory, signatory_designation</code>
+        <!-- Pagination -->
+        <div class="pagination-bar">
+          <div class="pagination-info" id="pagination-info">Showing 0 to 0 of 0 credentials</div>
+          <div class="pagination-btns">
+            <button class="pag-btn" id="btn-prev-page" onclick="prevPage()"><i class="bi bi-chevron-left"></i> Previous</button>
+            <button class="pag-btn" id="btn-next-page" onclick="nextPage()">Next <i class="bi bi-chevron-right"></i></button>
           </div>
-        </div>
-
-        <!-- Manual Creator Widget -->
-        <div class="dashboard-card">
-          <div class="card-title">Issue Manually</div>
-          <form action="/admin/add" method="POST">
-            <div class="form-group">
-              <label>Certificate Number</label>
-              <input type="text" name="certificate_no" class="form-control" placeholder="ATPS/2026/000005" required>
-            </div>
-            <div class="form-group">
-              <label>Student Name</label>
-              <input type="text" name="student_name" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label>College / Institution</label>
-              <input type="text" name="college_name" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label>Degree & Stream</label>
-              <input type="text" name="degree" class="form-control" placeholder="B.Com (General)" required>
-            </div>
-            <div class="form-group">
-              <label>Domain</label>
-              <input type="text" name="domain" class="form-control" placeholder="Accounting" required>
-            </div>
-            <div class="form-group">
-              <label>Duration</label>
-              <input type="text" name="duration" class="form-control" placeholder="30 Days" required>
-            </div>
-            <div class="form-group">
-              <label>Start Date</label>
-              <input type="date" name="start_date" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label>End Date</label>
-              <input type="date" name="end_date" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label>Issue Date</label>
-              <input type="date" name="issue_date" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label>Place</label>
-              <input type="text" name="place" class="form-control" value="Chennai" required>
-            </div>
-            <div class="form-group">
-              <label>Authorized Signatory</label>
-              <input type="text" name="authorized_signatory" class="form-control" value="K. Rohini" required>
-            </div>
-            <div class="form-group">
-              <label>Designation</label>
-              <input type="text" name="signatory_designation" class="form-control" value="Founder" required>
-            </div>
-            <button type="submit" class="submit-btn">Issue Certificate</button>
-          </form>
         </div>
 
       </div>
     </div>
+
+    <!-- TAB: ISSUE CREDENTIAL -->
+    <div class="tab-panel hidden" id="panel-issue">
+      <div style="display: grid; grid-template-columns: 1fr 340px; gap: 30px; align-items: start;">
+        
+        <!-- Form card -->
+        <div class="dashboard-card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <div class="card-title"><i class="bi bi-plus-circle-fill"></i> Manually Issue Certificate</div>
+          </div>
+          
+          <form action="/admin/add" method="POST">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Certificate ID Sequence</label>
+                <input type="text" name="certificate_no" id="issue-certificate-no" class="form-control" placeholder="e.g. ATPS/2026/000009" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Student Full Name</label>
+                <input type="text" name="student_name" class="form-control" placeholder="Enter student name" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Email Address (Optional)</label>
+                <input type="email" name="email" class="form-control" placeholder="e.g. student@example.com">
+              </div>
+              
+              <div class="form-group full-width">
+                <label>College / University Name</label>
+                <input type="text" name="college_name" class="form-control" placeholder="Enter institution full name" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Degree & Stream</label>
+                <input type="text" name="degree" class="form-control" placeholder="e.g. B.Com (General)" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Internship Domain</label>
+                <input type="text" name="domain" class="form-control" placeholder="e.g. Accounting" required>
+              </div>
+
+              <div class="form-group">
+                <label>Student Year of Study</label>
+                <select name="year" class="form-control">
+                  <option value="">-- Not Applicable --</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                  <option value="5th Year">5th Year</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label>Duration</label>
+                <input type="text" name="duration" class="form-control" placeholder="e.g. 30 Days" required>
+              </div>
+
+              <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" name="start_date" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <label>End Date</label>
+                <input type="date" name="end_date" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <label>Issue Date</label>
+                <input type="date" name="issue_date" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <label>Place</label>
+                <input type="text" name="place" class="form-control" value="Chennai" required>
+              </div>
+
+              <div class="form-group">
+                <label>Authorized Signatory</label>
+                <input type="text" name="authorized_signatory" class="form-control" value="K. Rohini" required>
+              </div>
+
+              <div class="form-group">
+                <label>Signatory Designation</label>
+                <input type="text" name="signatory_designation" class="form-control" value="Founder" required>
+              </div>
+
+              <div class="form-group full-width">
+                <label><i class="bi bi-patch-check-fill" style="color:var(--gold-light);"></i> Certificate Type</label>
+                <select name="certificate_type" class="form-control" required>
+                  <option value="INTERNSHIP">Certificate of Internship</option>
+                  <option value="COMPLETION">Certificate of Completion</option>
+                  <option value="PARTICIPATION">Certificate of Participation</option>
+                  <option value="TRAINING">Certificate of Training</option>
+                  <option value="APPRECIATION">Certificate of Appreciation</option>
+                  <option value="EXCELLENCE">Certificate of Excellence</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="submit-btn" style="margin-top: 15px;"><i class="bi bi-file-earmark-plus"></i> Generate and Issue</button>
+          </form>
+        </div>
+
+        <!-- Guidelines sidebar -->
+        <div class="dashboard-card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <div class="card-title"><i class="bi bi-info-circle-fill"></i> Guidelines</div>
+          </div>
+          <div class="instructions-box">
+            <strong>Certificate ID Structure:</strong><br>
+            It is recommended to check the highest index in database before naming. Use format: <code>ATPS/[YEAR]/[INDEX]</code> where index is 6 digits: e.g., <code>ATPS/2026/000009</code>.
+          </div>
+          <div class="instructions-box" style="border-left-color: var(--success); margin-top: 15px;">
+            <strong>Database Storage:</strong><br>
+            Once you click "Generate and Issue", the certificate is permanently stored. You can search, edit details, or delete it from the main Database tab.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB: CSV/EXCEL BATCH IMPORT -->
+    <div class="tab-panel hidden" id="panel-sync">
+      <div style="display: grid; grid-template-columns: 1fr 340px; gap: 30px; align-items: start;">
+        
+        <!-- Import Card -->
+        <div class="dashboard-card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <div class="card-title"><i class="bi bi-file-earmark-arrow-up-fill"></i> Excel / CSV Batch Uploader</div>
+          </div>
+          
+          <!-- File Drop Zone -->
+          <div class="drop-zone" id="importDropZone" style="border: 2px dashed rgba(217,119,6,0.3); border-radius: 12px; padding: 45px 24px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; background: rgba(10,25,47,0.2); margin-bottom: 25px;">
+            <input type="file" id="importFileInput" accept=".csv,.xlsx,.xls" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;">
+            <div class="drop-icon" style="font-size: 44px; margin-bottom: 12px; color: var(--gold-light);"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+            <div class="drop-label" style="font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 6px;">Drag & drop spreadsheet here, or click to browse</div>
+            <div class="drop-hint" style="font-size: 11.5px; color: var(--text-muted);">Supports Excel (.xlsx, .xls) and CSV (.csv) files</div>
+          </div>
+
+          <!-- Preview & Action Zone -->
+          <div id="importPreviewSection" style="display: none;">
+            <div class="card-title" style="font-size: 14px; margin-bottom: 12px; border-bottom: none; padding-bottom: 0;"><i class="bi bi-table"></i> Data Preview (<span id="importCount">0</span> rows detected)</div>
+            <div class="table-container" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 8px; margin-bottom: 20px;">
+              <table style="font-size: 12.5px;">
+                <thead style="position: sticky; top: 0; z-index: 10;">
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Email Address</th>
+                    <th>College Name</th>
+                    <th>Degree</th>
+                    <th>Domain</th>
+                    <th>Duration</th>
+                    <th>Dates</th>
+                  </tr>
+                </thead>
+                <tbody id="importPreviewTableBody">
+                  <!-- JS generated -->
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-bottom: 18px; padding: 16px 20px; background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.3); border-radius: 10px;">
+              <label style="font-size: 13px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 10px;"><i class="bi bi-patch-check-fill" style="color:var(--gold-light);"></i> Certificate Type for this Batch</label>
+              <select id="batchCertType" class="form-control" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 14px; font-size: 13.5px; width: 100%;">
+                <option value="INTERNSHIP">Certificate of Internship</option>
+                <option value="COMPLETION">Certificate of Completion</option>
+                <option value="PARTICIPATION">Certificate of Participation</option>
+                <option value="TRAINING">Certificate of Training</option>
+                <option value="APPRECIATION">Certificate of Appreciation</option>
+                <option value="EXCELLENCE">Certificate of Excellence</option>
+              </select>
+            </div>
+            <button onclick="executeImport()" class="submit-btn" id="executeImportBtn" style="background: linear-gradient(135deg, var(--success), #047857); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i> Import & Save to Database</button>
+          </div>
+        </div>
+
+        <!-- Instructions Sidebar -->
+        <div class="dashboard-card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <div class="card-title"><i class="bi bi-info-circle-fill"></i> Setup & Sample</div>
+          </div>
+          
+          <div class="instructions-box" style="margin-top:0;">
+            <strong>Spreadsheet Formatting:</strong><br>
+            The spreadsheet must contain the following columns in row 1 (header names matching exactly):<br>
+            <code>Student Name</code> <code>Email Address</code> <code>College Name</code> <code>Degree</code> <code>Domain</code> <code>Duration</code> <code>Start Date</code> <code>End Date</code> <code>Place</code>
+            <p style="margin-top: 10px;">Optional column: <code>Year</code> (e.g. <em>"III Year"</em>). If present, it will append to the degree.</p>
+          </div>
+          
+          <button onclick="downloadSampleSpreadsheet()" class="btn-secondary" style="width:100%; margin-top: 15px; text-align: center; justify-content: center; display: flex; gap: 8px;"><i class="bi bi-download"></i> Download Sample CSV</button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- EDIT MODAL OVERLAY -->
+  <div class="modal-overlay" id="editModal" onclick="if(event.target === this) closeEditModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title"><i class="bi bi-pencil-square" style="color:var(--gold-light);"></i> Modify Certificate Record</span>
+        <button class="modal-close" onclick="closeEditModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <form id="editForm" onsubmit="submitEditForm(event)">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Certificate ID (ReadOnly)</label>
+              <input type="text" name="certificate_no" id="edit-cert-no" class="form-control" style="opacity: 0.6; cursor: not-allowed; background: rgba(0,0,0,0.4);" readonly>
+            </div>
+            
+            <div class="form-group">
+              <label>Student Name</label>
+              <input type="text" name="student_name" id="edit-student-name" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+              <label>Email Address (Optional)</label>
+              <input type="email" name="email" id="edit-email" class="form-control">
+            </div>
+            
+            <div class="form-group full-width">
+              <label>College / Institution</label>
+              <input type="text" name="college_name" id="edit-college-name" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+              <label>Degree & Stream</label>
+              <input type="text" name="degree" id="edit-degree" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+              <label>Domain</label>
+              <input type="text" name="domain" id="edit-domain" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+              <label>Duration</label>
+              <input type="text" name="duration" id="edit-duration" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" name="start_date" id="edit-start-date" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>End Date</label>
+              <input type="date" name="end_date" id="edit-end-date" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Issue Date</label>
+              <input type="date" name="issue_date" id="edit-issue-date" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Place</label>
+              <input type="text" name="place" id="edit-place" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Authorized Signatory</label>
+              <input type="text" name="authorized_signatory" id="edit-authorized-signatory" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Signatory Designation</label>
+              <input type="text" name="signatory_designation" id="edit-signatory-designation" class="form-control" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="submit-btn" style="width: auto; padding: 10px 24px;"><i class="bi bi-save"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
   </div>
+
+  <!-- DELETE CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="deleteModal" onclick="if(event.target === this) closeDeleteModal()">
+    <div class="modal-box modal-small">
+      <div class="modal-header" style="border-bottom-color: rgba(239, 68, 68, 0.2)">
+        <span class="modal-title" style="color: var(--danger);"><i class="bi bi-exclamation-triangle-fill"></i> Delete Certificate</span>
+        <button class="modal-close" onclick="closeDeleteModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 15px; line-height: 1.6;">Are you sure you want to permanently delete certificate <strong id="delete-cert-id-display" style="color:var(--gold-light); font-family: monospace;"></strong>?</p>
+        <p style="font-size: 14px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">This will remove the credential record for <strong id="delete-student-name-display" style="color:#fff;"></strong> from the system database. Verify portal search results will no longer resolve this ID.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+        <button type="button" class="btn-danger" onclick="confirmDelete()">Confirm Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENT DATA EMBED -->
+  <script>
+    const certificatesData = ${certificatesJson};
+  </script>
+
+  <!-- CLIENT SCRIPTS -->
+  <script>
+    // Tab switching controller
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      
+      const panel = document.getElementById('panel-' + tabId);
+      const link = document.getElementById('link-' + tabId);
+      
+      if (panel && link) {
+        panel.classList.remove('hidden');
+        link.classList.add('active');
+        localStorage.setItem('activeDashboardTab', tabId);
+      }
+    }
+
+    // Auto load tab
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedTab = localStorage.getItem('activeDashboardTab') || 'overview';
+      switchTab(savedTab);
+      
+      // Auto fade alert banner after 5 seconds
+      const banner = document.getElementById('alert-banner');
+      if (banner) {
+        setTimeout(() => {
+          banner.style.transition = 'opacity 0.5s ease';
+          banner.style.opacity = '0';
+          setTimeout(() => banner.remove(), 500);
+        }, 5000);
+      }
+      
+      // Initialize active table rendering
+      renderCertificatesTable();
+      
+      // Clock updater
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      // Auto pre-fill next certificate ID
+      fetch('/api/last-cert-id')
+        .then(res => res.json())
+        .then(data => {
+          const lastIndex = data.lastIndex || 0;
+          const currentYear = new Date().getFullYear();
+          const nextIndex = lastIndex + 1;
+          const nextCertId = \`ATPS/\${currentYear}/\${String(nextIndex).padStart(6, '0')}\`;
+          const input = document.getElementById('issue-certificate-no');
+          if (input) {
+            input.value = nextCertId;
+          }
+        })
+        .catch(err => console.error('Error pre-filling certificate ID:', err));
+    });
+
+    function updateClock() {
+      const clockTime = document.getElementById('clock-time');
+      if (clockTime) {
+        const d = new Date();
+        clockTime.innerText = d.toLocaleTimeString();
+      }
+    }
+
+    // Dynamic Database Operations
+    let currentPage = 1;
+    let pageSize = 10;
+    let searchQuery = '';
+    let selectedDomain = 'all';
+
+    function renderCertificatesTable() {
+      const tableBody = document.querySelector('#certificates-table-body');
+      if (!tableBody) return;
+      
+      // Filter certificates array
+      let filtered = certificatesData.filter(c => {
+        const term = searchQuery.toLowerCase();
+        const matchesSearch = 
+          c.certificate_no.toLowerCase().includes(term) ||
+          c.student_name.toLowerCase().includes(term) ||
+          (c.email || '').toLowerCase().includes(term) ||
+          c.college_name.toLowerCase().includes(term) ||
+          c.domain.toLowerCase().includes(term);
+          
+        const matchesDomain = selectedDomain === 'all' || c.domain === selectedDomain;
+        return matchesSearch && matchesDomain;
+      });
+      
+      // Paginate
+      const totalItems = filtered.length;
+      const totalPages = Math.ceil(totalItems / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+      
+      const startIdx = (currentPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, totalItems);
+      const pageItems = filtered.slice(startIdx, endIdx);
+      
+      // Generate row templates
+      if (pageItems.length === 0) {
+        tableBody.innerHTML = \`<tr><td colspan="8" style="text-align:center; padding: 40px; color: var(--text-muted);"><i class="bi bi-search" style="font-size: 24px; display:block; margin-bottom:10px;"></i> No certificates found.</td></tr>\`;
+      } else {
+        tableBody.innerHTML = pageItems.map(c => \`
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: var(--accent-blue);">\${escapeHtml(c.certificate_no)}</td>
+            <td style="font-weight: 600; color: var(--text-main);">\${escapeHtml(c.student_name)}</td>
+            <td>\${escapeHtml(c.email || '—')}</td>
+            <td>\${escapeHtml(c.college_name)}</td>
+            <td><span class="domain-tag">\${escapeHtml(c.domain)}</span></td>
+            <td>\${escapeHtml(c.duration)}</td>
+            <td>\${escapeHtml(c.issue_date_input)}</td>
+            <td style="text-align: right; white-space: nowrap;">
+              <a href="/certificate/\${c.certificate_no.replace(/\\//g, '_')}" target="_blank" class="action-btn view-btn" title="View & Print A4 PDF"><i class="bi bi-eye"></i></a>
+              <button onclick="openEditModal('\${c.certificate_no}')" class="action-btn edit-btn" title="Edit Certificate"><i class="bi bi-pencil-square"></i></button>
+              <button onclick="openDeleteModal('\${c.certificate_no}', '\${escapeJs(c.student_name)}')" class="action-btn delete-btn" title="Delete Permanent"><i class="bi bi-trash3"></i></button>
+            </td>
+          </tr>
+        \`).join('');
+      }
+      
+      // Update info labels
+      document.getElementById('pagination-info').innerText = \`Showing \${totalItems === 0 ? 0 : startIdx + 1} to \${endIdx} of \${totalItems} credentials\`;
+      document.getElementById('btn-prev-page').disabled = currentPage === 1;
+      document.getElementById('btn-next-page').disabled = currentPage === totalPages;
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderCertificatesTable();
+      }
+    }
+
+    function nextPage() {
+      currentPage++;
+      renderCertificatesTable();
+    }
+
+    // Input event listeners
+    const searchEl = document.getElementById('search-input');
+    if (searchEl) {
+      searchEl.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        currentPage = 1;
+        renderCertificatesTable();
+      });
+    }
+
+    const domainFilterEl = document.getElementById('domain-filter');
+    if (domainFilterEl) {
+      domainFilterEl.addEventListener('change', (e) => {
+        selectedDomain = e.target.value;
+        currentPage = 1;
+        renderCertificatesTable();
+      });
+    }
+
+    const pageSizeSelectEl = document.getElementById('page-size-select');
+    if (pageSizeSelectEl) {
+      pageSizeSelectEl.addEventListener('change', (e) => {
+        pageSize = parseInt(e.target.value, 10);
+        currentPage = 1;
+        renderCertificatesTable();
+      });
+    }
+
+    // Edit Modal popup controls
+    function openEditModal(certNo) {
+      const cert = certificatesData.find(c => c.certificate_no === certNo);
+      if (!cert) return;
+      
+      document.getElementById('edit-cert-no').value = cert.certificate_no;
+      document.getElementById('edit-student-name').value = cert.student_name;
+      document.getElementById('edit-email').value = cert.email || '';
+      document.getElementById('edit-college-name').value = cert.college_name;
+      document.getElementById('edit-degree').value = cert.degree;
+      document.getElementById('edit-domain').value = cert.domain;
+      document.getElementById('edit-duration').value = cert.duration;
+      document.getElementById('edit-start-date').value = cert.start_date_input;
+      document.getElementById('edit-end-date').value = cert.end_date_input;
+      document.getElementById('edit-issue-date').value = cert.issue_date_input;
+      document.getElementById('edit-place').value = cert.place;
+      document.getElementById('edit-authorized-signatory').value = cert.authorized_signatory;
+      document.getElementById('edit-signatory-designation').value = cert.signatory_designation;
+      
+      document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function submitEditForm(event) {
+      event.preventDefault();
+      const form = event.target;
+      const data = {
+        certificate_no: form.certificate_no.value,
+        student_name: form.student_name.value,
+        email: form.email.value,
+        college_name: form.college_name.value,
+        degree: form.degree.value,
+        domain: form.domain.value,
+        duration: form.duration.value,
+        start_date: form.start_date.value,
+        end_date: form.end_date.value,
+        issue_date: form.issue_date.value,
+        place: form.place.value,
+        authorized_signatory: form.authorized_signatory.value,
+        signatory_designation: form.signatory_designation.value
+      };
+      
+      try {
+        const res = await fetch('/admin/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+          closeEditModal();
+          window.location.href = '/admin?msg=' + encodeURIComponent('Certificate ' + data.certificate_no + ' updated successfully!');
+        } else {
+          const errData = await res.json();
+          alert('Error updating certificate: ' + (errData.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('Failed to connect to the server: ' + err.message);
+      }
+    }
+
+    // Delete Modal popup controls
+    let certNoToDelete = '';
+
+    function openDeleteModal(certNo, studentName) {
+      certNoToDelete = certNo;
+      document.getElementById('delete-cert-id-display').innerText = certNo;
+      document.getElementById('delete-student-name-display').innerText = studentName;
+      document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    async function confirmDelete() {
+      if (!certNoToDelete) return;
+      
+      try {
+        const res = await fetch('/admin/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ certificate_no: certNoToDelete })
+        });
+        
+        if (res.ok) {
+          closeDeleteModal();
+          window.location.href = '/admin?msg=' + encodeURIComponent('Certificate ' + certNoToDelete + ' deleted permanently!');
+        } else {
+          const errData = await res.json();
+          alert('Error deleting certificate: ' + (errData.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('Failed to connect to the server: ' + err.message);
+      }
+    }
+
+    // Helper functions
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // JS string escaping
+    function escapeJs(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    // CSV/Excel Import script logic
+    let parsedRows = [];
+
+    const fileInputEl = document.getElementById('importFileInput');
+    if (fileInputEl) {
+      fileInputEl.addEventListener('change', handleFileSelect);
+    }
+
+    // Add drag and drop listeners
+    const dropZone = document.getElementById('importDropZone');
+    if (dropZone) {
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--success)';
+        dropZone.style.background = 'rgba(16, 185, 129, 0.05)';
+      });
+      
+      dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'rgba(217, 119, 6, 0.3)';
+        dropZone.style.background = 'rgba(10, 25, 47, 0.2)';
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'rgba(217, 119, 6, 0.3)';
+        dropZone.style.background = 'rgba(10, 25, 47, 0.2)';
+        
+        if (e.dataTransfer.files.length > 0) {
+          if (fileInputEl) {
+            fileInputEl.files = e.dataTransfer.files;
+          }
+          handleFileSelect({ target: { files: e.dataTransfer.files } });
+        }
+      });
+    }
+
+    function getVal(row, possibleNames) {
+      for (const name of possibleNames) {
+        const key = Object.keys(row).find(k => k.trim().toLowerCase() === name.toLowerCase());
+        if (key !== undefined) return row[key];
+      }
+      return '';
+    }
+
+    function parseExcelDate(val) {
+      if (!val) return '';
+      if (val instanceof Date) {
+        return val.toISOString().split('T')[0];
+      }
+      if (typeof val === 'number') {
+        const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+        return date.toISOString().split('T')[0];
+      }
+      const parsed = Date.parse(val);
+      if (!isNaN(parsed)) {
+        return new Date(parsed).toISOString().split('T')[0];
+      }
+      return String(val);
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+          
+          if (json.length === 0) {
+            alert('The uploaded spreadsheet is empty.');
+            return;
+          }
+          
+
+          parsedRows = json.map(row => {
+            return {
+              student_name: String(getVal(row, ['Student Name', 'Name', 'StudentName', 'Trainee Name'])).trim(),
+              email: String(getVal(row, ['Email', 'Email Address', 'Mail', 'Student Email'])).trim(),
+              college_name: String(getVal(row, ['College Name', 'College', 'Institution', 'University', 'College/University Name'])).trim(),
+              degree: String(getVal(row, ['Degree', 'Stream', 'Department', 'Course'])).trim(),
+              year: String(getVal(row, ['Year', 'Sem', 'Semester'])).trim(),
+              domain: String(getVal(row, ['Domain', 'Internship Domain', 'Field', 'Topic'])).trim(),
+              duration: String(getVal(row, ['Duration', 'Period'])).trim(),
+              start_date: parseExcelDate(getVal(row, ['Start Date', 'StartDate', 'From Date', 'FromDate', 'Start_Date'])),
+              end_date: parseExcelDate(getVal(row, ['End Date', 'EndDate', 'To Date', 'ToDate', 'End_Date'])),
+              place: String(getVal(row, ['Place', 'Location', 'City']) || 'Chennai').trim()
+            };
+          }).filter(row => row.student_name !== '');
+          
+          if (parsedRows.length === 0) {
+            alert('Could not find any valid rows with a "Student Name". Please verify headers.');
+            return;
+          }
+          
+          document.getElementById('importCount').innerText = parsedRows.length;
+          
+          const tbody = document.getElementById('importPreviewTableBody');
+          tbody.innerHTML = parsedRows.slice(0, 10).map(row => \`
+            <tr>
+              <td style="font-weight:600; color:var(--text-main);">\${escapeHtml(row.student_name)}</td>
+              <td>\${escapeHtml(row.email || '—')}</td>
+              <td>\${escapeHtml(row.college_name)}</td>
+              <td>\${escapeHtml(row.degree)}\${row.year ? ' - ' + escapeHtml(row.year) : ''}</td>
+              <td><span class="domain-tag">\${escapeHtml(row.domain)}</span></td>
+              <td>\${escapeHtml(row.duration)}</td>
+              <td style="font-family:monospace; font-size:11px;">\${row.start_date} / \${row.end_date}</td>
+            </tr>
+          \`).join('');
+          
+          if (parsedRows.length > 10) {
+            tbody.innerHTML += \`<tr><td colspan="7" style="text-align:center; color:var(--text-muted); font-style:italic;">Showing first 10 of \${parsedRows.length} rows...</td></tr>\`;
+          }
+          
+          document.getElementById('importPreviewSection').style.display = 'block';
+          
+        } catch(err) {
+          console.error(err);
+          alert('Error parsing file: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function executeImport() {
+      if (parsedRows.length === 0) return;
+      
+      const btn = document.getElementById('executeImportBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Importing & Saving... Please wait';
+      
+      try {
+        const seqRes = await fetch('/api/last-cert-id');
+        const seqData = await seqRes.json();
+        const lastIndex = seqData.lastIndex || 0;
+        
+        const currentYear = new Date().getFullYear();
+        let nextIndex = lastIndex + 1;
+        
+        const certificatesToStore = parsedRows.map((row, idx) => {
+          const certIndex = String(nextIndex + idx).padStart(6, '0');
+          const certificate_no = \`ATPS/\${currentYear}/\${certIndex}\`;
+          const batchType = document.getElementById('batchCertType').value || 'INTERNSHIP';
+          return {
+            certificate_no,
+            student_name: row.student_name,
+            email: row.email,
+            college_name: row.college_name,
+            degree: row.year ? \`\${row.degree} - \${row.year}\` : row.degree,
+            domain: row.domain,
+            duration: row.duration,
+            start_date: row.start_date,
+            end_date: row.end_date,
+            issue_date: new Date().toISOString().split('T')[0],
+            place: row.place || 'Chennai',
+            authorized_signatory: 'K. Rohini',
+            signatory_designation: 'Founder',
+            certificate_type: batchType
+          };
+        });
+        
+        const res = await fetch('/api/store-certificates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ certificates: certificatesToStore })
+        });
+        
+        if (res.ok) {
+          const result = await res.json();
+          const msg = 'Successfully imported ' + result.added + ' certificate(s) to database.';
+          window.location.href = '/admin?msg=' + encodeURIComponent(msg);
+        } else {
+          const errData = await res.json();
+          alert('Error importing certificates: ' + (errData.error || 'Unknown error'));
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
+        }
+      } catch(err) {
+        console.error(err);
+        alert('Import failed: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
+      }
+    }
+
+    function downloadSampleSpreadsheet() {
+      const headers = ['Student Name', 'Email Address', 'College Name', 'Degree', 'Year', 'Domain', 'Duration', 'Start Date', 'End Date', 'Place'];
+      const sampleRow = ['John Doe', 'student@example.com', 'Aadhira College of Engineering', 'B.E (CSE)', 'III Year', 'Web Development', '30 Days', '2026-06-01', '2026-06-30', 'Chennai'];
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(','), sampleRow.join(',')].join('\\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "atps_certificates_sample.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
 </body>
 </html>`;
 };
@@ -1195,17 +2622,20 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       place: row.place,
       authorized_signatory: row.authorized_signatory,
       signatory_designation: row.signatory_designation,
+      certificate_type: (row.certificate_type || 'INTERNSHIP').toUpperCase(),
       start_date_formatted: formatCertDate(row.start_date),
       end_date_formatted: formatCertDate(row.end_date),
       issue_date_formatted: formatCertDate(row.issue_date)
     };
+
+    const dateParts = formattedData.issue_date_formatted.split(' ');
 
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Certificate of Internship - ${formattedData.student_name}</title>
+  <title>Certificate of ${formattedData.certificate_type} - ${formattedData.student_name}</title>
   
   <!-- Google Fonts for high-end look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1218,12 +2648,128 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   <style>
     /* Styling for Screen Preview */
     :root {
+      --bg: #F8F9FA;
+      --border-outer-color: #0A192F;
+    }
+
+    /* Theme 1: Classic Gold (Default) */
+    .cert-container.theme-classic-gold {
       --navy: #0A192F;
       --gold: #D97706;
       --gold-light: #F5A623;
       --accent: #E07A5F;
-      --bg: #F8F9FA;
       --paper: #FFFFFF;
+      --title-font: 'Cinzel', serif;
+      --body-font: 'Montserrat', sans-serif;
+      --recipient-font: 'Playfair Display', serif;
+      --recipient-font-size: 36px;
+      --recipient-font-weight: 700;
+      --medal-grad-1: #FDE047;
+      --medal-grad-2: #F5A623;
+      --medal-grad-3: #D97706;
+      --medal-grad-4: #78350F;
+      --ribbon-grad-1: #0A192F;
+      --ribbon-grad-2: #1E3E62;
+      --ribbon-accent-1: #F5A623;
+      --ribbon-accent-2: #D97706;
+      --border-outer-color: var(--navy);
+      --border-inner-color: var(--gold);
+    }
+
+    /* Theme 2: Ocean Blue */
+    .cert-container.theme-ocean-blue {
+      --navy: #0F3057;
+      --gold: #008891;
+      --gold-light: #438a5e;
+      --accent: #005f73;
+      --paper: #F5F7FA;
+      --title-font: 'Playfair Display', serif;
+      --body-font: 'Montserrat', sans-serif;
+      --recipient-font: 'Alex Brush', cursive;
+      --recipient-font-size: 46px;
+      --recipient-font-weight: 400;
+      --medal-grad-1: #E2E8F0;
+      --medal-grad-2: #94A3B8;
+      --medal-grad-3: #64748B;
+      --medal-grad-4: #334155;
+      --ribbon-grad-1: #0F3057;
+      --ribbon-grad-2: #005F73;
+      --ribbon-accent-1: #008891;
+      --ribbon-accent-2: #E2E8F0;
+      --border-outer-color: var(--navy);
+      --border-inner-color: var(--gold);
+    }
+
+    /* Theme 3: Royal Maroon */
+    .cert-container.theme-royal-maroon {
+      --navy: #4A0E17;
+      --gold: #C5A880;
+      --gold-light: #D4AF37;
+      --accent: #B33939;
+      --paper: #FCF8F2;
+      --title-font: 'Cinzel', serif;
+      --body-font: 'Montserrat', sans-serif;
+      --recipient-font: 'Great Vibes', cursive;
+      --recipient-font-size: 48px;
+      --recipient-font-weight: 400;
+      --medal-grad-1: #FDE047;
+      --medal-grad-2: #D4AF37;
+      --medal-grad-3: #AA7C11;
+      --medal-grad-4: #5B3A00;
+      --ribbon-grad-1: #4A0E17;
+      --ribbon-grad-2: #800000;
+      --ribbon-accent-1: #C5A880;
+      --ribbon-accent-2: #D4AF37;
+      --border-outer-color: var(--navy);
+      --border-inner-color: var(--gold);
+    }
+
+    /* Theme 4: Forest Green */
+    .cert-container.theme-forest-green {
+      --navy: #133B2E;
+      --gold: #D4AF37;
+      --gold-light: #F3E5AB;
+      --accent: #2D5A27;
+      --paper: #FAF9F6;
+      --title-font: 'Playfair Display', serif;
+      --body-font: 'Montserrat', sans-serif;
+      --recipient-font: 'Mrs Saint Delafield', cursive;
+      --recipient-font-size: 58px;
+      --recipient-font-weight: 400;
+      --medal-grad-1: #FFFDD0;
+      --medal-grad-2: #D4AF37;
+      --medal-grad-3: #C5A880;
+      --medal-grad-4: #5C4033;
+      --ribbon-grad-1: #133B2E;
+      --ribbon-grad-2: #2D5A27;
+      --ribbon-accent-1: #D4AF37;
+      --ribbon-accent-2: #F3E5AB;
+      --border-outer-color: var(--navy);
+      --border-inner-color: var(--gold);
+    }
+
+    /* Theme 5: Purple Royal */
+    .cert-container.theme-purple-royal {
+      --navy: #2A1B3D;
+      --gold: #A29BFE;
+      --gold-light: #D6A2E8;
+      --accent: #6C5CE7;
+      --paper: #F8F9FC;
+      --title-font: 'Cinzel', serif;
+      --body-font: 'Montserrat', sans-serif;
+      --recipient-font: 'Great Vibes', cursive;
+      --recipient-font-size: 48px;
+      --recipient-font-weight: 400;
+      --medal-grad-1: #E0B0FF;
+      --medal-grad-2: #9F5F9F;
+      --medal-grad-3: #6F2DA8;
+      --medal-grad-4: #301934;
+      --ribbon-grad-1: #2A1B3D;
+      --ribbon-grad-2: #44318D;
+      --ribbon-accent-1: #A29BFE;
+      --ribbon-accent-2: #D6A2E8;
+      --border-outer-color: var(--navy);
+      --border-inner-color: var(--gold);
     }
 
     * {
@@ -1256,6 +2802,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       flex-direction: column;
       justify-content: space-between;
       padding: 40px;
+      transition: background 0.3s ease;
     }
 
     /* Outer Borders */
@@ -1265,8 +2812,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       left: 15px;
       right: 15px;
       bottom: 15px;
-      border: 8px solid var(--navy);
+      border: 8px solid var(--border-outer-color);
       pointer-events: none;
+      transition: border-color 0.3s ease;
     }
 
     .border-inner {
@@ -1275,8 +2823,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       left: 28px;
       right: 28px;
       bottom: 28px;
-      border: 2px solid var(--gold);
+      border: 2px solid var(--border-inner-color);
       pointer-events: none;
+      transition: border-color 0.3s ease;
     }
 
     /* Border Corner Decorations */
@@ -1284,8 +2833,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       position: absolute;
       width: 60px;
       height: 60px;
-      border: 3px solid var(--gold);
+      border: 3px solid var(--border-inner-color);
       pointer-events: none;
+      transition: border-color 0.3s ease;
     }
 
     .corner-tl {
@@ -1321,8 +2871,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       position: absolute;
       width: 45px;
       height: 45px;
-      fill: var(--gold);
+      fill: var(--border-inner-color);
       opacity: 0.85;
+      transition: fill 0.3s ease;
     }
     .svg-tl { top: 32px; left: 32px; }
     .svg-tr { top: 32px; right: 32px; transform: rotate(90deg); }
@@ -1335,15 +2886,17 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 340px;
+      width: 332.4px;
       height: 340px;
       pointer-events: none;
       z-index: 1;
       opacity: 0.08;
       background-image: url('/logos.png');
-      background-size: 400% 100%;
-      background-position: 0% 0%;
+      background-size: 1329.7px 340px;
+      background-position: 0px 0px;
       background-repeat: no-repeat;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
 
     /* Header Layout */
@@ -1354,21 +2907,24 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       z-index: 2;
       position: relative;
       width: 100%;
-      height: 110px;
+      height: auto;
+      margin-top: 50px; /* PUSH IT DOWN */
+      margin-bottom: 0px;
     }
 
     .cert-id {
       position: absolute;
       left: 0;
-      top: 0;
+      top: -35px;
       font-size: 11px;
-      color: var(--navy);
+      color: var(--border-outer-color);
       font-weight: 700;
       letter-spacing: 1.5px;
       background: rgba(10, 25, 47, 0.05);
       padding: 6px 12px;
       border-radius: 4px;
-      border-left: 3px solid var(--gold);
+      border-left: 3px solid var(--border-inner-color);
+      transition: all 0.3s ease;
     }
 
     .header-branding {
@@ -1381,26 +2937,29 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     /* Brand Logo & Accreditations Sprites */
     .logo-sprite {
       background-image: url('/logos.png');
-      background-size: 400% 100%;
+      background-size: 280.8px 72px;
       background-repeat: no-repeat;
       display: inline-block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
 
     .logo-aadhira {
-      background-position: 0% 0%;
-      width: 70px;
-      height: 70px;
-      margin-bottom: 2px;
+      background-position: 0px 0px;
+      width: 69.7px;
+      height: 72px;
+      margin-bottom: 4px;
     }
 
     .company-subtitle {
-      font-size: 24px;
-      color: var(--gold);
+      font-size: 26px;
+      color: var(--border-inner-color);
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 2px;
-      margin-top: 2px;
-      margin-bottom: 6px;
+      margin-top: 0px;
+      margin-bottom: 4px;
+      transition: color 0.3s ease;
     }
 
     /* Center-Aligned Accreditation Badges */
@@ -1412,32 +2971,34 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     .logo-iso {
-      background-position: 33.33% 0%;
-      width: 70px;
-      height: 70px;
+      background-position: -70.2px 0px;
+      width: 70.2px;
+      height: 72px;
     }
 
     .logo-arms {
-      background-position: 66.66% 0%;
-      width: 70px;
-      height: 70px;
+      background-position: -140.4px 0px;
+      width: 70.2px;
+      height: 72px;
     }
 
     .logo-uk {
-      background-position: 100% 0%;
-      width: 70px;
-      height: 70px;
+      background-position: -210.6px 0px;
+      width: 70.2px;
+      height: 72px;
     }
 
     .logo-msme {
-      height: 70px;
+      height: 72px;
       object-fit: contain;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
 
     .medal-container {
       position: absolute;
       right: 0;
-      top: -10px;
+      top: -45px;
       width: 80px;
       height: 100px;
       display: flex;
@@ -1449,19 +3010,20 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       text-align: center;
       z-index: 2;
       position: relative;
-      margin-top: 5px;
+      margin-top: -8px;
       margin-bottom: 5px;
     }
 
     .title {
-      font-family: 'Cinzel', serif;
-      font-size: 26px;
+      font-family: var(--title-font);
+      font-size: 30px;
       font-weight: 800;
-      color: var(--navy);
+      color: var(--border-outer-color);
       letter-spacing: 3px;
       margin-bottom: 10px;
       position: relative;
       display: inline-block;
+      transition: all 0.3s ease;
     }
 
     .title::after {
@@ -1471,12 +3033,13 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       left: 15%;
       width: 70%;
       height: 2px;
-      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      background: linear-gradient(90deg, transparent, var(--border-inner-color), transparent);
+      transition: background 0.3s ease;
     }
 
     .subtitle {
       font-family: 'Playfair Display', serif;
-      font-size: 14px;
+      font-size: 16px;
       font-style: italic;
       color: #555;
       margin-bottom: 20px;
@@ -1484,14 +3047,15 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     .recipient-name {
-      font-family: 'Playfair Display', serif;
-      font-size: 36px;
-      font-weight: 700;
-      color: var(--navy);
+      font-family: var(--recipient-font);
+      font-size: var(--recipient-font-size);
+      font-weight: var(--recipient-font-weight);
+      color: var(--border-outer-color);
       margin-bottom: 16px;
       display: inline-block;
       position: relative;
       padding: 0 20px;
+      transition: all 0.3s ease;
     }
 
     .recipient-name::after {
@@ -1501,14 +3065,15 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       left: 0;
       width: 100%;
       height: 2.2px;
-      background: linear-gradient(90deg, transparent, var(--gold-light), var(--gold), var(--gold-light), transparent);
+      background: linear-gradient(90deg, transparent, var(--gold-light), var(--border-inner-color), var(--gold-light), transparent);
+      transition: background 0.3s ease;
     }
 
     .achievement-text {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 13px;
+      font-family: var(--body-font);
+      font-size: 15.5px;
       color: #333;
-      line-height: 1.7;
+      line-height: 1.75;
       max-width: 860px;
       margin: 0 auto;
       font-weight: 500;
@@ -1516,7 +3081,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .highlight {
       font-weight: 700;
-      color: var(--navy);
+      color: var(--border-outer-color);
+      transition: color 0.3s ease;
     }
 
     /* Bottom Section Layout */
@@ -1529,8 +3095,11 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     .signatory-block {
-      width: 220px;
+      width: 250px;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .signature-container {
@@ -1546,19 +3115,23 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       max-width: 150px;
       max-height: 60px;
       object-fit: contain;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
 
     .sign-line {
-      border-top: 1.5px solid rgba(10, 25, 47, 0.3);
-      padding-top: 6px;
+      border-top: 1.5px solid var(--border-inner-color);
+      width: 100%;
+      height: 1px;
     }
 
     .sign-name {
       font-size: 11px;
       font-weight: 700;
-      color: var(--navy);
+      color: var(--border-outer-color);
       text-transform: uppercase;
       letter-spacing: 1px;
+      transition: color 0.3s ease;
     }
 
     .sign-designation {
@@ -1566,6 +3139,16 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       color: #666;
       margin-top: 2px;
       font-weight: 500;
+    }
+
+    .sign-title {
+      font-family: var(--title-font);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--border-inner-color);
+      margin-top: 6px;
+      letter-spacing: 1.5px;
+      transition: color 0.3s ease;
     }
 
     .seal-block {
@@ -1579,22 +3162,24 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .verification-block {
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       gap: 15px;
-      width: 240px;
+      width: auto;
     }
 
     .verification-details {
       text-align: left;
+      flex: none;
     }
 
     .verif-label {
       font-size: 8px;
       font-weight: 700;
-      color: var(--navy);
+      color: var(--border-outer-color);
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 4px;
+      transition: color 0.3s ease;
     }
 
     .verif-link {
@@ -1610,7 +3195,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     .verif-link:hover {
-      color: var(--gold);
+      color: var(--border-inner-color);
     }
 
     .qrcode-container {
@@ -1651,7 +3236,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     .btn-print {
-      background: linear-gradient(135deg, var(--navy), #1E3A8A);
+      background: linear-gradient(135deg, var(--border-outer-color), #1E3A8A);
       color: white;
     }
 
@@ -1662,13 +3247,85 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .btn-back {
       background: white;
-      color: var(--navy);
-      border: 1.5px solid var(--navy);
+      color: var(--border-outer-color);
+      border: 1.5px solid var(--border-outer-color);
     }
 
     .btn-back:hover {
       background: #F1F5F9;
       transform: translateY(-2px);
+    }
+
+    /* Theme Switcher Bar */
+    .theme-switcher-bar {
+      width: 100%;
+      max-width: 297mm;
+      background: white;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px;
+      padding: 12px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .switcher-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .switcher-title i {
+      color: #2563eb;
+    }
+
+    .theme-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .theme-btn {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 30px;
+      padding: 6px 14px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .theme-btn:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #1e293b;
+    }
+
+    .theme-btn.active {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    .color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 1px solid rgba(0,0,0,0.1);
     }
 
     /* Print styling rules */
@@ -1709,8 +3366,35 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 </head>
 <body>
 
+  <!-- Theme Switcher Bar (Hidden on Print) -->
+  <div class="theme-switcher-bar no-print">
+    <div class="switcher-title"><i class="bi bi-palette-fill"></i> Select Premium Theme:</div>
+    <div class="theme-buttons">
+      <button class="theme-btn active" data-theme="theme-classic-gold" onclick="setTheme('theme-classic-gold')">
+        <span class="color-dot" style="background: linear-gradient(135deg, #0A192F, #D97706);"></span>
+        Classic Gold
+      </button>
+      <button class="theme-btn" data-theme="theme-ocean-blue" onclick="setTheme('theme-ocean-blue')">
+        <span class="color-dot" style="background: linear-gradient(135deg, #0F3057, #008891);"></span>
+        Ocean Blue
+      </button>
+      <button class="theme-btn" data-theme="theme-royal-maroon" onclick="setTheme('theme-royal-maroon')">
+        <span class="color-dot" style="background: linear-gradient(135deg, #4A0E17, #C5A880);"></span>
+        Royal Maroon
+      </button>
+      <button class="theme-btn" data-theme="theme-forest-green" onclick="setTheme('theme-forest-green')">
+        <span class="color-dot" style="background: linear-gradient(135deg, #133B2E, #D4AF37);"></span>
+        Forest Green
+      </button>
+      <button class="theme-btn" data-theme="theme-purple-royal" onclick="setTheme('theme-purple-royal')">
+        <span class="color-dot" style="background: linear-gradient(135deg, #2A1B3D, #A29BFE);"></span>
+        Purple Royal
+      </button>
+    </div>
+  </div>
+
   <!-- Certificate Container -->
-  <div class="cert-container">
+  <div class="cert-container theme-classic-gold">
     
     <!-- Borders -->
     <div class="border-outer"></div>
@@ -1770,18 +3454,18 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         <svg viewBox="0 0 120 180" width="75" height="110">
           <defs>
             <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#FDE047"/>
-              <stop offset="30%" stop-color="#F5A623"/>
-              <stop offset="70%" stop-color="#D97706"/>
-              <stop offset="100%" stop-color="#78350F"/>
+              <stop offset="0%" stop-color="var(--medal-grad-1)"/>
+              <stop offset="30%" stop-color="var(--medal-grad-2)"/>
+              <stop offset="70%" stop-color="var(--medal-grad-3)"/>
+              <stop offset="100%" stop-color="var(--medal-grad-4)"/>
             </linearGradient>
             <linearGradient id="ribbonGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#0A192F"/>
-              <stop offset="100%" stop-color="#1E3E62"/>
+              <stop offset="0%" stop-color="var(--ribbon-grad-1)"/>
+              <stop offset="100%" stop-color="var(--ribbon-grad-2)"/>
             </linearGradient>
             <linearGradient id="ribbonGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#F5A623"/>
-              <stop offset="100%" stop-color="#D97706"/>
+              <stop offset="0%" stop-color="var(--ribbon-accent-1)"/>
+              <stop offset="100%" stop-color="var(--ribbon-accent-2)"/>
             </linearGradient>
           </defs>
           <!-- Ribbons -->
@@ -1801,17 +3485,17 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     <!-- Main Content Area -->
     <div class="content">
-      <h1 class="title">CERTIFICATE OF INTERNSHIP</h1>
-      <p class="subtitle">This internship program certificate is proudly awarded to</p>
+      <h1 class="title">CERTIFICATE OF ${formattedData.certificate_type}</h1>
+      <p class="subtitle">This certificate is proudly awarded to</p>
       
       <div class="recipient-name">${formattedData.student_name}</div>
       
       <p class="achievement-text">
-        from <span class="highlight">${formattedData.college_name}</span>, pursuing <span class="highlight">${formattedData.degree}</span>, 
+        from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , 
         for successfully completing the <span class="highlight">${formattedData.domain} Internship Program</span> 
         conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, 
-        Chennai, for a duration of <span class="highlight">${formattedData.duration}</span>, 
-        from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.
+        Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , 
+        from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .
       </p>
     </div>
 
@@ -1824,10 +3508,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           <!-- Render your brand's handwritten signature image -->
           <img src="/signature.png" class="signature-img" alt="Signature of K. Rohini">
         </div>
-        <div class="sign-line">
-          <div class="sign-name">${formattedData.authorized_signatory}</div>
-          <div class="sign-designation">${formattedData.signatory_designation}</div>
-        </div>
+        <div class="sign-line"></div>
       </div>
 
       <!-- Company Seal -->
@@ -1835,9 +3516,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         <svg viewBox="0 0 120 120" width="95" height="95">
           <defs>
             <linearGradient id="sealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#F5A623"/>
-              <stop offset="50%" stop-color="#D97706"/>
-              <stop offset="100%" stop-color="#92400E"/>
+              <stop offset="0%" stop-color="var(--border-inner-color)"/>
+              <stop offset="50%" stop-color="var(--border-outer-color)"/>
+              <stop offset="100%" stop-color="var(--border-inner-color)"/>
             </linearGradient>
           </defs>
           <circle cx="60" cy="60" r="54" fill="none" stroke="url(#sealGrad)" stroke-width="3"/>
@@ -1859,16 +3540,19 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       </div>
 
       <!-- Verification QR & Details -->
-      <div class="verification-block">
-        <div class="verification-details">
-          <div class="verif-label">Verification At</div>
-          <a class="verif-link" id="verifLinkDisplay" href="#" target="_blank">Loading...</a>
-          <div class="verif-label" style="margin-top: 8px; font-size: 7px; color: #888;">Place: ${formattedData.place}</div>
-          <div class="verif-label" style="font-size: 7px; color: #888;">Date: ${formattedData.issue_date_formatted}</div>
+      <div class="verification-block" style="display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: auto;">
+        <div class="verification-details" style="display: flex; flex-direction: column; justify-content: center; text-align: left; font-family: 'Montserrat', sans-serif; font-weight: 700; color: #718096; gap: 2px;">
+          <div style="font-size: 8.5px; letter-spacing: 0.5px; color: #718096; line-height: 1.2;">PLACE:</div>
+          <div style="font-size: 9px; letter-spacing: 0.5px; color: #4A5568; margin-bottom: 2px; line-height: 1.2;">${formattedData.place.toUpperCase()}</div>
+          <div style="font-size: 8.5px; letter-spacing: 0.5px; color: #718096; line-height: 1.2;">DATE: ${dateParts[0] ? dateParts[0].toUpperCase() : ''}</div>
+          <div style="font-size: 9px; letter-spacing: 0.5px; color: #4A5568; line-height: 1.2;">${(dateParts[1] || '').toUpperCase()} ${(dateParts[2] || '')}</div>
         </div>
         
-        <div class="qrcode-container">
-          <div id="qrcode-${formattedData.id}" style="width: 60px; height: 60px;"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <div class="qrcode-container" style="display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--border-inner-color); padding: 4px; background: white; border-radius: 4px;">
+            <div id="qrcode-${formattedData.id}" style="width: 100px; height: 100px;"></div>
+          </div>
+          <div style="font-size: 7.5px; font-weight: 700; color: #718096; letter-spacing: 0.5px; text-transform: uppercase;">SCAN TO VERIFY</div>
         </div>
       </div>
 
@@ -1897,24 +3581,41 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       const currentHost = window.location.protocol + "//" + window.location.host;
       const verifyUrl = currentHost + "/verify?cert=" + encodeURIComponent("${formattedData.certificate_no}");
       
-      const linkDisplay = document.getElementById("verifLinkDisplay");
-      if (linkDisplay) {
-        linkDisplay.href = verifyUrl;
-        linkDisplay.innerText = window.location.host + "/verify?cert=...";
-      }
-
       const qrcodeEl = document.getElementById("qrcode-${formattedData.id}");
       if (qrcodeEl) {
         new QRCode(qrcodeEl, {
           text: verifyUrl,
-          width: 60,
-          height: 60,
-          colorDark : "#0A192F",
+          width: 100,
+          height: 100,
+          colorDark : "#000000",
           colorLight : "#FFFFFF",
           correctLevel : QRCode.CorrectLevel.H
         });
       }
+
+      // Initialize Theme preference
+      const savedTheme = localStorage.getItem('certThemePreference') || 'theme-classic-gold';
+      setTheme(savedTheme);
     });
+
+    function setTheme(themeName) {
+      const container = document.querySelector('.cert-container');
+      if (!container) return;
+      
+      const themes = ['theme-classic-gold', 'theme-ocean-blue', 'theme-royal-maroon', 'theme-forest-green', 'theme-purple-royal'];
+      themes.forEach(t => container.classList.remove(t));
+      container.classList.add(themeName);
+      
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        if (btn.getAttribute('data-theme') === themeName) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      localStorage.setItem('certThemePreference', themeName);
+    }
   </script>
 
 </body>
@@ -2002,17 +3703,29 @@ fastify.post('/api/store-certificates', async (request, reply) => {
         logDbMessage(`Inserting certificate for student: ${c.student_name}, ID: ${c.certificate_no}`);
         await pool.query(`
           INSERT INTO certificates (
-            certificate_no, student_name, college_name, degree, domain, 
+            certificate_no, student_name, email, college_name, degree, domain, 
             duration, start_date, end_date, issue_date, place, 
-            authorized_signatory, signatory_designation, created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+            authorized_signatory, signatory_designation, certificate_type, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
         `, [
-          c.certificate_no, c.student_name, c.college_name, c.degree, c.domain,
+          c.certificate_no, c.student_name, c.email || null, c.college_name, c.degree, c.domain,
           c.duration, parsedStartDate, parsedEndDate, parsedIssueDate, c.place,
-          c.authorized_signatory || 'K. Rohini', c.signatory_designation || 'Director, ATPS'
+          c.authorized_signatory || 'K. Rohini', c.signatory_designation || 'Director, ATPS',
+          (c.certificate_type || 'INTERNSHIP').toUpperCase()
         ]);
         added++;
         logDbMessage(`Successfully stored certificate ${c.certificate_no} for ${c.student_name}.`);
+
+        // Trigger background email delivery asynchronously
+        if (c.email && c.email.trim() !== '') {
+          const emailVal = c.email.trim();
+          const nameVal = c.student_name;
+          const certNoVal = c.certificate_no;
+          setImmediate(() => {
+            generateAndEmailCertificate(certNoVal, nameVal, emailVal)
+              .catch(err => console.error(`Background email failed for ${certNoVal}:`, err));
+          });
+        }
       } else {
         skipped++;
         logDbMessage(`Skipped duplicate certificate for ${c.student_name} in domain ${c.domain}.`);
@@ -2031,8 +3744,10 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
   const {
     certificate_no,
     student_name,
+    email,
     college_name,
     degree,
+    year,
     domain,
     duration,
     start_date,
@@ -2040,8 +3755,11 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
     issue_date,
     place,
     authorized_signatory,
-    signatory_designation
+    signatory_designation,
+    certificate_type
   } = request.body;
+
+  const finalDegree = year && year.trim() ? `${degree} - ${year.trim()}` : degree;
 
   try {
     // Check duplicate
@@ -2056,15 +3774,16 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
 
     await pool.query(`
       INSERT INTO certificates (
-        certificate_no, student_name, college_name, degree, domain, 
+        certificate_no, student_name, email, college_name, degree, domain, 
         duration, start_date, end_date, issue_date, place, 
-        authorized_signatory, signatory_designation
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        authorized_signatory, signatory_designation, certificate_type
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
     `, [
       certificate_no,
       student_name,
+      email || null,
       college_name,
-      degree,
+      finalDegree,
       domain,
       duration,
       parsedStartDate,
@@ -2072,10 +3791,23 @@ fastify.post('/admin/add', { preHandler: checkAuth }, async (request, reply) => 
       parsedIssueDate,
       place,
       authorized_signatory,
-      signatory_designation
+      signatory_designation,
+      (certificate_type || 'INTERNSHIP').toUpperCase()
     ]);
 
     logDbMessage(`Manual creation succeeded for student: ${student_name}, ID: ${certificate_no}`);
+
+    // Trigger background email delivery asynchronously
+    if (email && email.trim() !== '') {
+      const emailVal = email.trim();
+      const nameVal = student_name;
+      const certNoVal = certificate_no;
+      setImmediate(() => {
+        generateAndEmailCertificate(certNoVal, nameVal, emailVal)
+          .catch(err => console.error(`Background email failed for ${certNoVal}:`, err));
+      });
+    }
+
     return reply.redirect('/admin?msg=' + encodeURIComponent('Certificate issued successfully to ' + student_name + '!'));
   } catch (err) {
     logDbMessage(`Manual creation failed for student ${student_name || 'unknown'}: ${err.message}`);
@@ -2186,6 +3918,201 @@ fastify.post('/admin/sync', { preHandler: checkAuth }, async (request, reply) =>
   }
 });
 
+// Action: Update certificate in database
+fastify.post('/admin/update', { preHandler: checkAuth }, async (request, reply) => {
+  const {
+    certificate_no,
+    student_name,
+    email,
+    college_name,
+    degree,
+    domain,
+    duration,
+    start_date,
+    end_date,
+    issue_date,
+    place,
+    authorized_signatory,
+    signatory_designation
+  } = request.body;
+
+  try {
+    const parsedStartDate = parseDateForDb(start_date) || start_date;
+    const parsedEndDate = parseDateForDb(end_date) || end_date;
+    const parsedIssueDate = parseDateForDb(issue_date) || issue_date;
+
+    await pool.query(`
+      UPDATE certificates SET
+        student_name = $2,
+        email = $3,
+        college_name = $4,
+        degree = $5,
+        domain = $6,
+        duration = $7,
+        start_date = $8,
+        end_date = $9,
+        issue_date = $10,
+        place = $11,
+        authorized_signatory = $12,
+        signatory_designation = $13
+      WHERE certificate_no = $1
+    `, [
+      certificate_no,
+      student_name,
+      email || null,
+      college_name,
+      degree,
+      domain,
+      duration,
+      parsedStartDate,
+      parsedEndDate,
+      parsedIssueDate,
+      place,
+      authorized_signatory,
+      signatory_designation
+    ]);
+
+    logDbMessage(`Manual update succeeded for student: ${student_name}, ID: ${certificate_no}`);
+
+    // Trigger background email delivery asynchronously
+    if (email && email.trim() !== '') {
+      const emailVal = email.trim();
+      const nameVal = student_name;
+      const certNoVal = certificate_no;
+      setImmediate(() => {
+        generateAndEmailCertificate(certNoVal, nameVal, emailVal)
+          .catch(err => console.error(`Background email failed for ${certNoVal}:`, err));
+      });
+    }
+
+    return reply.send({ success: true, message: 'Certificate updated successfully!' });
+  } catch (err) {
+    logDbMessage(`Manual update failed for student ${student_name || 'unknown'}: ${err.message}`);
+    console.error('Error manual update:', err);
+    return reply.status(500).send({ success: false, error: 'Database error: ' + err.message });
+  }
+});
+
+// Action: Delete certificate from database
+fastify.post('/admin/delete', { preHandler: checkAuth }, async (request, reply) => {
+  const { certificate_no } = request.body;
+
+  if (!certificate_no) {
+    return reply.status(400).send({ success: false, error: 'Certificate number is required!' });
+  }
+
+  try {
+    await pool.query('DELETE FROM certificates WHERE certificate_no = $1', [certificate_no]);
+    logDbMessage(`Manual deletion succeeded for ID: ${certificate_no}`);
+    return reply.send({ success: true, message: 'Certificate deleted successfully!' });
+  } catch (err) {
+    logDbMessage(`Manual deletion failed for ID ${certificate_no}: ${err.message}`);
+    console.error('Error manual delete:', err);
+    return reply.status(500).send({ success: false, error: 'Database error: ' + err.message });
+  }
+});
+
+// Dynamic background PDF generator & Brevo SMTP email sender
+async function generateAndEmailCertificate(certificateNo, studentName, recipientEmail) {
+  let browser;
+  try {
+    const puppeteer = require('puppeteer');
+    const port = process.env.PORT || 3000;
+    const certUrl = `http://localhost:${port}/certificate/${certificateNo.replace(/\//g, '_')}`;
+    
+    logDbMessage(`[Background Email] Launching Puppeteer to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
+    
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    
+    // Set a viewport size that matches A4 ratio
+    await page.setViewport({
+      width: 1123,
+      height: 794,
+      deviceScaleFactor: 2 // Boost quality for high resolution!
+    });
+    
+    await page.goto(certUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+    
+    // Generate PDF using landscape format matching the CSS layout
+    const pdfBuffer = await page.pdf({
+      printBackground: true,
+      landscape: true,
+      format: 'A4',
+      margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
+    });
+    
+    await browser.close();
+    browser = null;
+    
+    const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
+    const filename = `Certificate_${studentName.replace(/\s+/g, '_')}.pdf`;
+    
+    // Send email using our existing Brevo integration code directly
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'vsgrpsemail@gmail.com';
+    const senderName = process.env.BREVO_SENDER_NAME || 'Aadhira Solutions';
+    
+    if (!apiKey) {
+      logDbMessage(`[Background Email Error] BREVO_API_KEY environment variable is not defined.`);
+      return;
+    }
+    
+    logDbMessage(`[Background Email] Attempting to send certificate ${certificateNo} to ${studentName} (${recipientEmail})`);
+    
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+      sender: {
+        name: senderName,
+        email: senderEmail
+      },
+      to: [
+        {
+          email: recipientEmail,
+          name: studentName
+        }
+      ],
+      subject: `Certificate of Internship - ${studentName}`,
+      htmlContent: `
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <p>Dear <strong>${studentName}</strong>,</p>
+            <p>Congratulations on successfully completing your internship!</p>
+            <p>Please find attached your Certificate of Internship (No. ${certificateNo}) issued by <strong>Aadhira Training and Placement Solutions (ATPS)</strong>.</p>
+            <p>Warm regards,<br><strong>Aadhira Solutions Team</strong></p>
+          </body>
+        </html>
+      `,
+      attachment: [
+        {
+          content: pdfBase64,
+          name: filename
+        }
+      ]
+    }, {
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    logDbMessage(`[Background Email Success] Certificate ${certificateNo} successfully sent to ${recipientEmail}. Message ID: ${response.data.messageId || 'unknown'}`);
+  } catch (err) {
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+    let errMsg = err.message;
+    if (err.response && err.response.data) {
+      errMsg += ' - ' + JSON.stringify(err.response.data);
+    }
+    logDbMessage(`[Background Email Error] Failed to send email to ${recipientEmail} for certificate ${certificateNo}: ${errMsg}`);
+  }
+}
+
 // Action: Send certificate email via Brevo SMTP API
 fastify.post('/api/send-email', async (request, reply) => {
   const { email, studentName, pdfBase64, filename, certificateNo } = request.body || {};
@@ -2261,6 +4188,18 @@ fastify.post('/api/send-email', async (request, reply) => {
 // -------------------------------------------------------------
 const start = async () => {
   try {
+    // Database schema migration: Add email column if not exists
+    console.log('Running database schema migration...');
+    const dbClient = await pool.connect();
+    try {
+      await dbClient.query('ALTER TABLE certificates ADD COLUMN IF NOT EXISTS email VARCHAR(255);');
+      console.log('Database schema migration successful: email column verified.');
+    } catch (dbErr) {
+      console.error('Error running database schema migration:', dbErr.message);
+    } finally {
+      dbClient.release();
+    }
+
     const port = process.env.PORT || 3000;
     await fastify.listen({ port: port, host: '0.0.0.0' });
     console.log(`\n======================================================`);

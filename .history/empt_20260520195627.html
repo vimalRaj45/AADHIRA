@@ -1,28 +1,9 @@
-const fs = require('fs');
-const path = require('path');
-const { Client } = require('pg');
-
-const connectionString = 'postgresql://neondb_owner:npg_c3Z8hrJHXGIR@ep-old-shape-apznh8mh-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-
-function getOrdinalNum(n) {
-  return n + (n > 0 ? ['th', 'st', 'nd', 'rd'][(n > 3 && n < 21) || n % 10 > 3 ? 0 : n % 10] : '');
-}
-function formatCertDate(dateInput) {
-  if (!dateInput) return '';
-  const d = new Date(dateInput);
-  const day = d.getDate();
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const month = months[d.getMonth()];
-  const year = d.getFullYear();
-  return `${getOrdinalNum(day)} ${month} ${year}`;
-}
-
-const certTemplate = (data) => `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Certificate of ${data.certificate_type} - ${data.student_name}</title>
+  <title>Certificate of Internship</title>
   
   <!-- Google Fonts for high-end look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -171,15 +152,13 @@ const certTemplate = (data) => `<!DOCTYPE html>
       z-index: 2;
       position: relative;
       width: 100%;
-      height: auto;
-      margin-top: 50px; /* PUSH IT DOWN */
-      margin-bottom: 5px;
+      height: 110px;
     }
 
     .cert-id {
       position: absolute;
       left: 0;
-      top: -35px;
+      top: 0;
       font-size: 14px;
       color: var(--navy);
       font-weight: 700;
@@ -200,27 +179,28 @@ const certTemplate = (data) => `<!DOCTYPE html>
     /* Brand Logo & Accreditations Sprites */
     .logo-sprite {
       background-image: url('logos.png');
-      background-size: 249.3px 64px;
+      background-size: 400% 100%;
       background-repeat: no-repeat;
       display: inline-block;
       mix-blend-mode: multiply;
     }
 
     .logo-aadhira {
-      background-position: 0px 0px;
-      width: 61.9px;
-      height: 64px;
-      margin-bottom: 5px;
+      background-position: 0% 0%;
+      width: 80px;
+      height: 80px;
+      margin-top: 120px;
+      margin-bottom: 2px;
     }
 
     .company-subtitle {
-      font-size: 24px;
+      font-size: 12px;
       color: var(--gold);
-      font-weight: 800;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-top: 0px;
-      margin-bottom: 5px;
+      letter-spacing: 3.5px;
+      margin-top: 2px;
+      margin-bottom: 6px;
     }
 
     /* Center-Aligned Accreditation Badges */
@@ -232,25 +212,25 @@ const certTemplate = (data) => `<!DOCTYPE html>
     }
 
     .logo-iso {
-      background-position: -62.325px 0px;
-      width: 62.325px;
-      height: 64px;
+      background-position: 33.33% 0%;
+      width: 44px;
+      height: 44px;
     }
 
     .logo-arms {
-      background-position: -124.65px 0px;
-      width: 62.325px;
-      height: 64px;
+      background-position: 66.66% 0%;
+      width: 44px;
+      height: 44px;
     }
 
     .logo-uk {
-      background-position: -186.975px 0px;
-      width: 62.325px;
-      height: 64px;
+      background-position: 100% 0%;
+      width: 44px;
+      height: 44px;
     }
 
     .logo-msme {
-      height: 64px;
+      height: 44px;
       mix-blend-mode: multiply;
       object-fit: contain;
     }
@@ -258,7 +238,7 @@ const certTemplate = (data) => `<!DOCTYPE html>
     .medal-container {
       position: absolute;
       right: 0;
-      top: -45px;
+      top: -10px;
       width: 80px;
       height: 100px;
       display: flex;
@@ -270,16 +250,16 @@ const certTemplate = (data) => `<!DOCTYPE html>
       text-align: center;
       z-index: 2;
       position: relative;
-      margin-top: 0px;
+      margin-top: 5px;
       margin-bottom: 5px;
     }
 
     .title {
       font-family: 'Cinzel', serif;
-      font-size: 26px;
+      font-size: 42px;
       font-weight: 800;
       color: var(--navy);
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       margin-bottom: 10px;
       position: relative;
       display: inline-block;
@@ -401,14 +381,13 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
     .verification-block {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       gap: 15px;
-      width: auto;
+      width: 240px;
     }
 
     .verification-details {
       text-align: left;
-      flex: none;
     }
 
     .verif-label {
@@ -561,7 +540,7 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
     <!-- Top Header -->
     <div class="header">
-      <div class="cert-id">ID: ${data.certificate_no}</div>
+      <div class="cert-id"></div>
       
       <div class="header-branding">
         <!-- Render your corporate Aadhira Tree logo via sprite -->
@@ -613,17 +592,17 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
     <!-- Main Content Area -->
     <div class="content">
-      <h1 class="title">CERTIFICATE OF ${data.certificate_type}</h1>
-      <p class="subtitle">This certificate is proudly awarded to</p>
+      <h1 class="title">CERTIFICATE OF INTERNSHIP</h1>
+      <p class="subtitle">This internship program certificate is proudly awarded to</p>
       
-      <div class="recipient-name">${data.student_name}</div>
+      <div class="recipient-name">____________________</div>
       
       <p class="achievement-text">
-        from <span class="highlight">${data.college_name}</span>, pursuing <span class="highlight">${data.degree}</span>, 
-        for successfully completing the <span class="highlight">${data.domain} Internship Program</span> 
+        from <span class="highlight">________________</span>, pursuing <span class="highlight">__________________</span>, 
+        for successfully completing the <span class="highlight">_</span> 
         conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, 
-        Chennai, for a duration of <span class="highlight">${data.duration}</span>, 
-        from <span class="highlight">${data.start_date_formatted}</span> to <span class="highlight">${data.end_date_formatted}</span>.
+        Chennai, for a duration of <span class="highlight">30 Days</span>, 
+        from <span class="highlight">16th May 2026</span> to <span class="highlight">16th June 2026</span>.
       </p>
     </div>
 
@@ -653,9 +632,9 @@ const certTemplate = (data) => `<!DOCTYPE html>
           <circle cx="60" cy="60" r="40" fill="none" stroke="url(#sealGrad)" stroke-width="1"/>
           
           <!-- Curved text using SVG path -->
-          <path id="sealTextPath-${data.id}" d="M60 18 A42 42 0 0 1 102 60 A42 42 0 0 1 60 102 A42 42 0 0 1 18 60 A42 42 0 0 1 60 18 Z" fill="none"/>
+          <path id="sealTextPath-1" d="M60 18 A42 42 0 0 1 102 60 A42 42 0 0 1 60 102 A42 42 0 0 1 18 60 A42 42 0 0 1 60 18 Z" fill="none"/>
           <text fill="url(#sealGrad)" font-family="'Montserrat', sans-serif" font-size="6.8" font-weight="700" letter-spacing="0.8">
-            <textPath href="#sealTextPath-${data.id}" startOffset="0%">• AADHIRA TRAINING & PLACEMENT SOLUTIONS • ATPS •</textPath>
+            <textPath href="#sealTextPath-1" startOffset="0%">• AADHIRA TRAINING & PLACEMENT SOLUTIONS • ATPS •</textPath>
           </text>
           
           <!-- Star and Seal Center Logo -->
@@ -670,13 +649,13 @@ const certTemplate = (data) => `<!DOCTYPE html>
       <div class="verification-block">
         <div class="verification-details">
           <div class="verif-label">Verification At</div>
-          <a class="verif-link" href="https://aadhira.onrender.com/verify?cert=${data.certificate_no}" target="_blank">aadhira.onrender.com/verify?cert=${data.certificate_no}</a>
-          <div class="verif-label" style="margin-top: 8px; font-size: 9px; color: #888;">Place: ${data.place}</div>
-          <div class="verif-label" style="font-size: 9px; color: #888;">Date: ${data.issue_date_formatted}</div>
+          <a class="verif-link" href="https://aadhira.onrender.com/verify?cert=ATPS/2026/000001" target="_blank">aadhira.onrender.com/verify?cert=ATPS/2026/000001</a>
+          <div class="verif-label" style="margin-top: 8px; font-size: 9px; color: #888;">Place: Chennai</div>
+          <div class="verif-label" style="font-size: 9px; color: #888;">Date: 20 May 2026</div>
         </div>
         
         <div class="qrcode-container">
-          <div id="qrcode-${data.id}" style="width: 60px; height: 60px;"></div>
+          <div id="qrcode-1" style="width: 60px; height: 60px;"></div>
         </div>
       </div>
 
@@ -699,10 +678,10 @@ const certTemplate = (data) => `<!DOCTYPE html>
   <!-- Dynamic QR Code Script -->
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      const qrcodeEl = document.getElementById("qrcode-${data.id}");
+      const qrcodeEl = document.getElementById("qrcode-1");
       if (qrcodeEl) {
         new QRCode(qrcodeEl, {
-          text: "https://aadhira.onrender.com/verify?cert=${data.certificate_no}",
+          text: "https://aadhira.onrender.com/verify?cert=ATPS/2026/000001",
           width: 60,
           height: 60,
           colorDark : "#0A192F",
@@ -715,54 +694,3 @@ const certTemplate = (data) => `<!DOCTYPE html>
 
 </body>
 </html>
-`;
-
-async function main() {
-  const client = new Client({
-    connectionString: connectionString,
-  });
-
-  try {
-    await client.connect();
-    console.log('Connected to PostgreSQL database...');
-
-    const res = await client.query('SELECT * FROM certificates ORDER BY certificate_no ASC');
-    console.log(`Found ${res.rows.length} certificate records in database.`);
-
-    for (const row of res.rows) {
-      const formattedData = {
-        id: row.id,
-        certificate_no: row.certificate_no,
-        student_name: row.student_name,
-        college_name: row.college_name,
-        degree: row.degree,
-        domain: row.domain,
-        duration: row.duration,
-        place: row.place,
-        authorized_signatory: row.authorized_signatory,
-        signatory_designation: row.signatory_designation,
-        certificate_type: (row.certificate_type || 'INTERNSHIP').toUpperCase(),
-        start_date_formatted: formatCertDate(row.start_date),
-        end_date_formatted: formatCertDate(row.end_date),
-        issue_date_formatted: formatCertDate(row.issue_date)
-      };
-
-      const serial = row.certificate_no.split('/').pop();
-      const filename = `cert_${serial}.html`;
-      const filepath = path.join('c:\\Users\\USER\\OneDrive\\Desktop\\adhira', filename);
-
-      console.log(`Generating ${filename} for ${row.student_name}...`);
-      const htmlContent = certTemplate(formattedData);
-      fs.writeFileSync(filepath, htmlContent, 'utf8');
-      console.log(`Saved ${filename} to disk.`);
-    }
-
-    console.log('All local static certificate HTML files successfully updated!');
-  } catch (err) {
-    console.error('Error generating certificates:', err);
-  } finally {
-    await client.end();
-  }
-}
-
-main();
