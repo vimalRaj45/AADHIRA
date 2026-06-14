@@ -4410,38 +4410,76 @@ fastify.post('/admin/delete', { preHandler: checkAuth }, async (request, reply) 
 async function generateAndEmailCertificate(certificateNo, studentName, recipientEmail) {
   let browser;
   try {
-    const puppeteer = require('puppeteer');
     const port = process.env.PORT || 3000;
-    const certUrl = `http://localhost:${port}/certificate/${certificateNo.replace(/\//g, '_')}`;
+    const isExternalApi = !!(process.env.PDFSHIFT_API_KEY || process.env.PDFENDPOINT_API_KEY);
+    const baseUrl = isExternalApi ? (process.env.BASE_URL || 'https://aadhira.onrender.com') : `http://localhost:${port}`;
+    const certUrl = `${baseUrl}/certificate/${certificateNo.replace(/\//g, '_')}`;
     
-    logDbMessage(`[Background Email] Launching Puppeteer to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
-    
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    
-    const page = await browser.newPage();
-    
-    // Set a viewport size that matches A4 ratio
-    await page.setViewport({
-      width: 1123,
-      height: 794,
-      deviceScaleFactor: 2 // Boost quality for high resolution!
-    });
-    
-    await page.goto(certUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-    
-    // Generate PDF using landscape format matching the CSS layout
-    const pdfBuffer = await page.pdf({
-      printBackground: true,
-      landscape: true,
-      format: 'A4',
-      margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
-    });
-    
-    await browser.close();
-    browser = null;
+    let pdfBuffer;
+
+    if (process.env.PDFSHIFT_API_KEY) {
+      logDbMessage(`[Background Email] Using PDFShift API to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
+      const response = await axios.post('https://api.pdfshift.co/v3/convert/pdf', {
+        source: certUrl,
+        landscape: true,
+        format: 'A4',
+        margin: '0px'
+      }, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from('api:' + process.env.PDFSHIFT_API_KEY).toString('base64')}`
+        },
+        responseType: 'arraybuffer',
+        timeout: 30000
+      });
+      pdfBuffer = response.data;
+    } else if (process.env.PDFENDPOINT_API_KEY) {
+      logDbMessage(`[Background Email] Using PDFEndpoint API to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
+      const response = await axios.post('https://api.pdfendpoint.com/v1/convert/url', {
+        url: certUrl,
+        orientation: 'landscape',
+        page_size: 'A4',
+        margin_top: '0px',
+        margin_right: '0px',
+        margin_bottom: '0px',
+        margin_left: '0px',
+        sandbox: false
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.PDFENDPOINT_API_KEY}`
+        },
+        responseType: 'arraybuffer',
+        timeout: 30000
+      });
+      pdfBuffer = response.data;
+    } else {
+      const puppeteer = require('puppeteer');
+      logDbMessage(`[Background Email] Launching local Puppeteer to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
+      
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      
+      const page = await browser.newPage();
+      
+      await page.setViewport({
+        width: 1123,
+        height: 794,
+        deviceScaleFactor: 2
+      });
+      
+      await page.goto(certUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+      
+      pdfBuffer = await page.pdf({
+        printBackground: true,
+        landscape: true,
+        format: 'A4',
+        margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
+      });
+      
+      await browser.close();
+      browser = null;
+    }
     
     const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
     const filename = `Certificate_${studentName.replace(/\s+/g, '_')}.pdf`;
