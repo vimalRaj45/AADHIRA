@@ -3052,6 +3052,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   
   <!-- qrcode.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- html2pdf.js CDN for client-side rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
     /* Styling for Screen Preview */
@@ -4032,7 +4034,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
   <!-- Print Button (Hidden on Print) -->
   <div class="controls no-print">
-    <button class="btn btn-print" onclick="preparePrint()">
+    <button class="btn btn-print" onclick="downloadPDF()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="6 9 6 2 18 2 18 9"></polyline>
         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -4086,48 +4088,66 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       localStorage.setItem('certThemePreference', themeName);
     }
 
-    // ── PDF Download helper ──────────────────────────────────
-    // Strips the responsive CSS scale-transform before printing so the
-    // browser sees a real 297mm×210mm element and outputs exactly ONE
-    // A4 landscape page with zero blank space beneath the certificate.
-    function preparePrint() {
-      const wrapper   = document.querySelector('.cert-wrapper');
+    // ── Client-side PDF Generation helper ────────────────────
+    // Uses html2pdf.js to capture the certificate container element
+    // and render it as a single-page landscape A4 PDF.
+    function downloadPDF() {
       const container = document.querySelector('.cert-container');
-      if (!wrapper || !container) { window.print(); return; }
+      const btn = document.querySelector('.btn-print');
+      if (!container || !btn) return;
 
-      // ── Save current inline styles ──
-      const prevWrapperStyle    = wrapper.getAttribute('style')   || '';
-      const prevContainerStyle  = container.getAttribute('style') || '';
-      const prevBodyOverflow    = document.body.style.overflow;
-      const prevBodyBg          = document.body.style.background;
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span style="border: 2px solid white; border-top: 2px solid transparent; border-radius: 50%; width: 14px; height: 14px; display: inline-block; animation: spin 1s linear infinite; margin-right: 8px; vertical-align: middle;"></span> Generating PDF...';
 
-      // ── Apply exact A4 landscape pixel dimensions (96 dpi) ──
-      // 297mm × 210mm  →  1122px × 794px  (at 96 dpi)
-      const W = 1122, H = 794;
+      // Inject spinner animation stylesheet dynamically if not already present
+      if (!document.getElementById('pdf-spinner-style')) {
+        const style = document.createElement('style');
+        style.id = 'pdf-spinner-style';
+        style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+      }
 
-      wrapper.setAttribute('style',
-        'display:block;width:' + W + 'px;height:' + H + 'px;overflow:hidden;margin:0;padding:0;');
-      container.setAttribute('style',
-        'position:absolute;top:0;left:0;width:' + W + 'px;height:' + H + 'px;' +
-        'transform:none;margin:0;border-radius:0;box-shadow:none;overflow:hidden;');
-      document.body.style.overflow  = 'hidden';
-      document.body.style.background = 'white';
+      // Save user's dynamic theme settings & other styles
+      const prevContainerStyle = container.getAttribute('style') || '';
 
-      // ── Small delay lets the browser reflow before dialog opens ──
-      requestAnimationFrame(function() {
-        setTimeout(function() {
-          window.print();
+      // Force absolute positioning, scale(1), and exact pixels during snapshot to bypass mobile scale constraints
+      container.setAttribute('style', 'width: 1122px !important; height: 793px !important; transform: none !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; position: relative !important;');
 
-          // ── Restore screen state after dialog closes ──
-          setTimeout(function() {
-            if (prevWrapperStyle)   wrapper.setAttribute('style', prevWrapperStyle);
-            else                    wrapper.removeAttribute('style');
-            if (prevContainerStyle) container.setAttribute('style', prevContainerStyle);
-            else                    container.removeAttribute('style');
-            document.body.style.overflow  = prevBodyOverflow;
-            document.body.style.background = prevBodyBg;
-          }, 500);
-        }, 80);
+      const opt = {
+        margin:       0,
+        filename:     'Certificate_${formattedData.student_name.replace(/\\s+/g, '_')}.pdf',
+        image:        { type: 'jpeg', quality: 1.0 },
+        html2canvas:  { 
+          scale: 2,           // Boost canvas DPI for ultra-sharp rendering
+          useCORS: true,      // Enable cross-origin resource sharing for fonts and external images
+          logging: false,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF:        { unit: 'px', format: [1122, 793], hotfixes: ['px_scaling'] }
+      };
+
+      // Generate PDF on client-side
+      html2pdf().set(opt).from(container).save().then(() => {
+        // Restore screen styles
+        if (prevContainerStyle) {
+          container.setAttribute('style', prevContainerStyle);
+        } else {
+          container.removeAttribute('style');
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }).catch(err => {
+        console.error('PDF generation failed:', err);
+        alert('Failed to generate PDF. Please try again.');
+        if (prevContainerStyle) {
+          container.setAttribute('style', prevContainerStyle);
+        } else {
+          container.removeAttribute('style');
+        }
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
       });
     }
   </script>
