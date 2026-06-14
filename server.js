@@ -4406,80 +4406,94 @@ fastify.post('/admin/delete', { preHandler: checkAuth }, async (request, reply) 
   }
 });
 
+// Helper to locate Google Chrome or Microsoft Edge on the local dev machine
+function getLocalChromePath() {
+  const fs = require('fs');
+  if (process.platform === 'win32') {
+    const possiblePaths = [
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+    ];
+    for (const path of possiblePaths) {
+      if (path && fs.existsSync(path)) return path;
+    }
+  } else if (process.platform === 'darwin') {
+    const path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    if (fs.existsSync(path)) return path;
+  } else {
+    const possiblePaths = [
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser'
+    ];
+    for (const path of possiblePaths) {
+      if (fs.existsSync(path)) return path;
+    }
+  }
+  return '';
+}
+
 // Dynamic background PDF generator & Brevo SMTP email sender
 async function generateAndEmailCertificate(certificateNo, studentName, recipientEmail) {
   let browser;
   try {
     const port = process.env.PORT || 3000;
-    const isExternalApi = !!(process.env.PDFSHIFT_API_KEY || process.env.PDFENDPOINT_API_KEY);
-    const baseUrl = isExternalApi ? (process.env.BASE_URL || 'https://aadhira.onrender.com') : `http://localhost:${port}`;
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+    const baseUrl = isProduction ? (process.env.BASE_URL || 'https://aadhira.onrender.com') : `http://localhost:${port}`;
     const certUrl = `${baseUrl}/certificate/${certificateNo.replace(/\//g, '_')}`;
     
     let pdfBuffer;
 
-    if (process.env.PDFSHIFT_API_KEY) {
-      logDbMessage(`[Background Email] Using PDFShift API to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
-      const response = await axios.post('https://api.pdfshift.co/v3/convert/pdf', {
-        source: certUrl,
-        landscape: true,
-        format: 'A4',
-        margin: '0px'
-      }, {
-        headers: {
-          'Authorization': `Basic ${Buffer.from('api:' + process.env.PDFSHIFT_API_KEY).toString('base64')}`
-        },
-        responseType: 'arraybuffer',
-        timeout: 30000
-      });
-      pdfBuffer = response.data;
-    } else if (process.env.PDFENDPOINT_API_KEY) {
-      logDbMessage(`[Background Email] Using PDFEndpoint API to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
-      const response = await axios.post('https://api.pdfendpoint.com/v1/convert/url', {
-        url: certUrl,
-        orientation: 'landscape',
-        page_size: 'A4',
-        margin_top: '0px',
-        margin_right: '0px',
-        margin_bottom: '0px',
-        margin_left: '0px',
-        sandbox: false
-      }, {
-        headers: {
-          'Authorization': `Bearer ${process.env.PDFENDPOINT_API_KEY}`
-        },
-        responseType: 'arraybuffer',
-        timeout: 30000
-      });
-      pdfBuffer = response.data;
-    } else {
-      const puppeteer = require('puppeteer');
-      logDbMessage(`[Background Email] Launching local Puppeteer to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
+    if (isProduction) {
+      logDbMessage(`[Background Email] Launching serverless Chromium via @sparticuz/chromium to generate PDF (URL: ${certUrl})`);
+      const puppeteer = require('puppeteer-core');
+      const chromium = require('@sparticuz/chromium');
       
       browser = await puppeteer.launch({
+        args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      });
+    } else {
+      const puppeteer = require('puppeteer-core');
+      const localPath = getLocalChromePath();
+      if (!localPath) {
+        throw new Error('Could not find local Chrome or Edge installation. Please install Chrome or define the path manually.');
+      }
+      
+      logDbMessage(`[Background Email] Launching local browser at ${localPath} to generate PDF (URL: ${certUrl})`);
+      browser = await puppeteer.launch({
+        executablePath: localPath,
         headless: 'new',
         args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
-      
-      const page = await browser.newPage();
-      
-      await page.setViewport({
-        width: 1123,
-        height: 794,
-        deviceScaleFactor: 2
-      });
-      
-      await page.goto(certUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-      
-      pdfBuffer = await page.pdf({
-        printBackground: true,
-        landscape: true,
-        format: 'A4',
-        margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
-      });
-      
-      await browser.close();
-      browser = null;
     }
+    
+    const page = await browser.newPage();
+    
+    // Set a viewport size that matches A4 ratio
+    await page.setViewport({
+      width: 1123,
+      height: 794,
+      deviceScaleFactor: 2 // Boost quality for high resolution!
+    });
+    
+    await page.goto(certUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+    
+    // Generate PDF using landscape format matching the CSS layout
+    pdfBuffer = await page.pdf({
+      printBackground: true,
+      landscape: true,
+      format: 'A4',
+      margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
+    });
+    
+    await browser.close();
+    browser = null;
     
     const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
     const filename = `Certificate_${studentName.replace(/\s+/g, '_')}.pdf`;
