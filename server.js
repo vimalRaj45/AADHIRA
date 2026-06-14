@@ -3213,6 +3213,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     /* Fixed Landscape A4 Dimensions for Preview */
     .cert-container {
       width: 1122px;
+      min-width: 1122px;
+      flex-shrink: 0;
       height: 793px;
       background: var(--paper);
       position: relative;
@@ -3238,6 +3240,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         transform-origin: top center;
         transform: scale(calc(90vw / 1122px));
         margin-bottom: calc(-793px * (1 - (90vw / 1122px)));
+        min-width: 1122px !important;
+        flex-shrink: 0 !important;
       }
     }
 
