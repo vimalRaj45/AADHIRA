@@ -2128,6 +2128,21 @@ const adminHtml = (certificates, message = '', error = '') => {
               </select>
             </div>
             <button onclick="executeImport()" class="submit-btn" id="executeImportBtn" style="background: linear-gradient(135deg, var(--success), #047857); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i> Import & Save to Database</button>
+
+            <!-- Progress Section -->
+            <div id="importProgressSection" style="display:none; margin-top: 22px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <span style="font-size:13px; font-weight:700; color:var(--text-main);"><i class="bi bi-activity" style="color:var(--gold-light);"></i> Import Progress</span>
+                <span id="importProgressLabel" style="font-size:12px; font-weight:600; color:var(--gold-light);">0 / 0</span>
+              </div>
+              <div style="background: rgba(255,255,255,0.07); border-radius: 99px; height: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 14px;">
+                <div id="importProgressBar" style="height:100%; width:0%; background: linear-gradient(90deg, #059669, #10b981, #34d399); border-radius: 99px; transition: width 0.35s ease; box-shadow: 0 0 10px rgba(16,185,129,0.5);"></div>
+              </div>
+              <div id="importRowLog" style="max-height: 200px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 14px; background: rgba(0,0,0,0.25); font-family: monospace; font-size: 11.5px; line-height: 1.8;">
+                <!-- rows appended here -->
+              </div>
+              <div id="importSummaryBox" style="display:none; margin-top: 14px; padding: 14px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;"></div>
+            </div>
           </div>
         </div>
 
@@ -2824,70 +2839,128 @@ const adminHtml = (certificates, message = '', error = '') => {
       };
       reader.readAsArrayBuffer(file);
     }
-
-    async function executeImport() {
+       async function executeImport() {
       if (parsedRows.length === 0) return;
-      
-      showLoading("Importing and storing spreadsheet data... Please wait");
+
       const btn = document.getElementById('executeImportBtn');
       btn.disabled = true;
-      btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Importing & Saving... Please wait';
-      
+      btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+
+      // Show progress UI
+      const progressSection = document.getElementById('importProgressSection');
+      const progressBar     = document.getElementById('importProgressBar');
+      const progressLabel   = document.getElementById('importProgressLabel');
+      const rowLog          = document.getElementById('importRowLog');
+      const summaryBox      = document.getElementById('importSummaryBox');
+      progressSection.style.display = 'block';
+      rowLog.innerHTML = '';
+      summaryBox.style.display = 'none';
+      progressBar.style.width = '0%';
+
+      const total = parsedRows.length;
+      let added = 0, skipped = 0, failed = 0;
+
       try {
-        const seqRes = await fetch('/api/last-cert-id');
+        const seqRes  = await fetch('/api/last-cert-id');
         const seqData = await seqRes.json();
         const lastIndex = seqData.lastIndex || 0;
-        
         const currentYear = new Date().getFullYear();
-        let nextIndex = lastIndex + 1;
-        
         const batchTemplate = document.getElementById('batchTemplate').value || 'classic';
-        const certificatesToStore = parsedRows.map((row, idx) => {
-          const certIndex = String(nextIndex + idx).padStart(6, '0');
-          const certificate_no = \`ATPS/\${currentYear}/\${certIndex}\`;
-          const batchType = document.getElementById('batchCertType').value || 'INTERNSHIP';
-          return {
+        const batchType     = document.getElementById('batchCertType').value || 'INTERNSHIP';
+
+        for (let i = 0; i < parsedRows.length; i++) {
+          const row = parsedRows[i];
+          const certIndex    = String(lastIndex + 1 + i).padStart(6, '0');
+          const certificate_no = `ATPS/${currentYear}/${certIndex}`;
+
+          const cert = {
             certificate_no,
-            student_name: row.student_name,
-            email: row.email,
-            college_name: row.college_name,
-            degree: row.year ? \`\${row.degree} - \${row.year}\` : row.degree,
-            domain: row.domain,
-            duration: row.duration,
-            start_date: row.start_date,
-            end_date: row.end_date,
-            issue_date: new Date().toISOString().split('T')[0],
-            place: row.place || 'Chennai',
-            authorized_signatory: 'K. Rohini',
+            student_name:          row.student_name,
+            email:                 row.email,
+            college_name:          row.college_name,
+            degree:                row.year ? `${row.degree} - ${row.year}` : row.degree,
+            domain:                row.domain,
+            duration:              row.duration,
+            start_date:            row.start_date,
+            end_date:              row.end_date,
+            issue_date:            new Date().toISOString().split('T')[0],
+            place:                 row.place || 'Chennai',
+            authorized_signatory:  'K. Rohini',
             signatory_designation: 'Founder',
-            certificate_type: batchType,
-            template: batchTemplate
+            certificate_type:      batchType,
+            template:              batchTemplate
           };
-        });
-        
-        const res = await fetch('/api/store-certificates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ certificates: certificatesToStore })
-        });
-        
-        if (res.ok) {
-          const result = await res.json();
-          const msg = 'Successfully imported ' + result.added + ' certificate(s) to database.';
-          window.location.href = '/admin?msg=' + encodeURIComponent(msg);
+
+          // Update progress bar & label
+          const pct = Math.round(((i) / total) * 100);
+          progressBar.style.width = pct + '%';
+          progressLabel.textContent = `${i + 1} / ${total}`;
+
+          // Append live row log
+          const logLine = document.createElement('div');
+          logLine.id = `logrow-${i}`;
+          logLine.style.cssText = 'color: rgba(255,255,255,0.5); padding: 2px 0;';
+          logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ⏳ ${escapeHtml(row.student_name)} — <em>${escapeHtml(certificate_no)}</em> ...`;
+          rowLog.appendChild(logLine);
+          rowLog.scrollTop = rowLog.scrollHeight;
+
+          try {
+            const res = await fetch('/api/store-certificates', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ certificates: [cert] })
+            });
+            const result = await res.json();
+
+            if (res.ok && result.added > 0) {
+              added++;
+              logLine.style.color = '#34d399';
+              logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ✅ ${escapeHtml(row.student_name)} — <em>${escapeHtml(certificate_no)}</em> <span style="color:#6ee7b7;">Saved</span>`;
+            } else if (result.skipped > 0) {
+              skipped++;
+              logLine.style.color = '#fbbf24';
+              logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ⚠️ ${escapeHtml(row.student_name)} — <span style="color:#fde68a;">Skipped (duplicate)</span>`;
+            } else {
+              failed++;
+              logLine.style.color = '#f87171';
+              logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ❌ ${escapeHtml(row.student_name)} — <span style="color:#fca5a5;">Error: ${escapeHtml((result.errors && result.errors[0]?.error) || 'Unknown')}</span>`;
+            }
+          } catch(rowErr) {
+            failed++;
+            logLine.style.color = '#f87171';
+            logLine.innerHTML = `<span style="color:var(--gold-light);">[${i+1}/${total}]</span> ❌ ${escapeHtml(row.student_name)} — <span style="color:#fca5a5;">Network error</span>`;
+          }
+
+          rowLog.scrollTop = rowLog.scrollHeight;
+        }
+
+        // Final 100%
+        progressBar.style.width = '100%';
+        progressLabel.textContent = `${total} / ${total} — Done`;
+
+        // Summary
+        summaryBox.style.display = 'block';
+        if (failed === 0) {
+          summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35); color: #6ee7b7;';
+          summaryBox.innerHTML = `<i class="bi bi-check-circle-fill"></i> Import complete! <strong>${added}</strong> saved, <strong>${skipped}</strong> skipped (duplicates). Redirecting...`;
+          setTimeout(() => {
+            const msg = `Successfully imported ${added} certificate(s). ${skipped} skipped.`;
+            window.location.href = '/admin?msg=' + encodeURIComponent(msg);
+          }, 2200);
         } else {
-          const errData = await res.json();
-          alert('Error importing certificates: ' + (errData.error || 'Unknown error'));
+          summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5;';
+          summaryBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Done with errors — <strong>${added}</strong> saved, <strong>${skipped}</strong> skipped, <strong>${failed}</strong> failed. Check the log above.`;
           btn.disabled = false;
           btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
-          hideLoading();
         }
+
       } catch(err) {
         console.error(err);
-        alert('Import failed: ' + err.message);
+        summaryBox.style.display = 'block';
+        summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5;';
+        summaryBox.innerHTML = `<i class="bi bi-x-circle-fill"></i> Import failed: ${escapeHtml(err.message)}`;
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
-        hideLoading();
       }
     }
 
