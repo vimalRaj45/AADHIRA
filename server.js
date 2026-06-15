@@ -4040,11 +4040,24 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       <div class="recipient-name">${formattedData.student_name}</div>
       
       <p class="achievement-text">
-        from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , 
-        for successfully completing the <span class="highlight">${formattedData.domain} Internship Program</span> 
-        conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, 
-        Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , 
-        from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .
+        ${(() => {
+          const ct = formattedData.certificate_type;
+          if (ct === 'INTERNSHIP') {
+            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for successfully completing the <span class="highlight">${formattedData.domain} Internship Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+          } else if (ct === 'COMPLETION') {
+            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for successfully completing the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+          } else if (ct === 'PARTICIPATION') {
+            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for actively participating in the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+          } else if (ct === 'TRAINING') {
+            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for successfully completing the <span class="highlight">${formattedData.domain} Training Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+          } else if (ct === 'APPRECIATION') {
+            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , in recognition of outstanding contribution and dedication in the field of <span class="highlight">${formattedData.domain}</span> at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+          } else if (ct === 'EXCELLENCE') {
+            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , in recognition of exceptional performance and excellence demonstrated in the <span class="highlight">${formattedData.domain} Program</span> at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+          } else {
+            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for successfully completing the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+          }
+        })()}
       </p>
     </div>
 
@@ -4221,7 +4234,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       // Wait 150ms for browser to complete reflowing layout before taking snapshot
       setTimeout(function() {
         html2canvas(container, {
-          scale: 2,           // Boost canvas DPI for ultra-sharp rendering
+          scale: 4,           // 4x DPI for ultra-sharp, print-quality rendering
           useCORS: true,      // Enable cross-origin resource sharing for fonts and external images
           logging: false,
           scrollY: 0,
@@ -4231,7 +4244,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           windowWidth: 1122,
           windowHeight: 793
         }).then(canvas => {
-          const imgData = canvas.toDataURL('image/jpeg', 1.0);
+          // Use PNG for lossless full-quality output (no JPEG compression artefacts)
+          const imgData = canvas.toDataURL('image/png');
           
           // Access jsPDF class from the bundled html2pdf dependencies
           const { jsPDF } = window.jspdf || window;
@@ -4241,7 +4255,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
             format: [1122, 793]
           });
           
-          pdf.addImage(imgData, 'JPEG', 0, 0, 1122, 793);
+          pdf.addImage(imgData, 'PNG', 0, 0, 1122, 793);
           pdf.save('Certificate_${formattedData.student_name.replace(/\\s+/g, '_')}.pdf');
 
           // Restore styles
