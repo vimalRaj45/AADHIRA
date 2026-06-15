@@ -4234,7 +4234,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       // Wait 150ms for browser to complete reflowing layout before taking snapshot
       setTimeout(function() {
         html2canvas(container, {
-          scale: 4,           // 4x DPI for ultra-sharp, print-quality rendering
+          scale: 2,           // 2x DPI for high-quality rendering with optimized file size
           useCORS: true,      // Enable cross-origin resource sharing for fonts and external images
           logging: false,
           scrollY: 0,
@@ -4244,8 +4244,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           windowWidth: 1122,
           windowHeight: 793
         }).then(canvas => {
-          // Use PNG for lossless full-quality output (no JPEG compression artefacts)
-          const imgData = canvas.toDataURL('image/png');
+          // Use JPEG with 0.8 quality to keep the PDF file size small (under 4MB) while maintaining sharpness
+          const imgData = canvas.toDataURL('image/jpeg', 0.8);
           
           // Access jsPDF class from the bundled html2pdf dependencies
           const { jsPDF } = window.jspdf || window;
@@ -4255,7 +4255,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
             format: [1122, 793]
           });
           
-          pdf.addImage(imgData, 'PNG', 0, 0, 1122, 793);
+          pdf.addImage(imgData, 'JPEG', 0, 0, 1122, 793);
           pdf.save('Certificate_${formattedData.student_name.replace(/\\s+/g, '_')}.pdf');
 
           // Restore styles
