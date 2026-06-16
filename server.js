@@ -3407,7 +3407,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     body {
-      background: radial-gradient(circle at 50% 50%, #0F172A 0%, #020617 100%);
+      background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
       font-family: 'Montserrat', sans-serif;
       display: flex;
       flex-direction: column;
@@ -3426,7 +3426,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       filter: blur(120px);
       z-index: 0;
       pointer-events: none;
-      opacity: 0.12;
+      opacity: 0.15;
     }
     
     .shape-1 {
@@ -3434,7 +3434,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       left: -10%;
       width: 500px;
       height: 500px;
-      background: #D97706;
+      background: #BFDBFE; /* light blue */
     }
     
     .shape-2 {
@@ -3442,7 +3442,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       right: -10%;
       width: 600px;
       height: 600px;
-      background: #1E3A8A;
+      background: #DBEAFE; /* very light blue */
     }
 
     /* Page Header Styles */
@@ -3455,11 +3455,11 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       padding: 16px 32px;
       margin-bottom: 30px;
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.6);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 4px 30px rgba(15, 23, 42, 0.05);
       z-index: 10;
     }
     
@@ -3475,8 +3475,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       font-weight: 700;
       letter-spacing: 2.5px;
       text-transform: uppercase;
-      color: #FFFFFF;
-      background: linear-gradient(135deg, #FFF 0%, var(--gold-light, #F5A623) 100%);
+      color: #1E3A8A;
+      background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -3486,24 +3486,24 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       align-items: center;
       gap: 8px;
       padding: 6px 14px;
-      background: rgba(16, 185, 129, 0.08);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      color: #34D399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #065F46;
       border-radius: 50px;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1.2px;
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.08);
-      animation: pulse-glow 2s infinite alternate;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.05);
+      animation: pulse-glow-light 2s infinite alternate;
     }
     
-    @keyframes pulse-glow {
+    @keyframes pulse-glow-light {
       0% {
-        box-shadow: 0 0 5px rgba(16, 185, 129, 0.08);
+        box-shadow: 0 0 5px rgba(16, 185, 129, 0.05);
       }
       100% {
-        box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
       }
     }
     
@@ -3517,14 +3517,14 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       width: 100%;
       max-width: 1122px;
       margin-top: 40px;
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.6);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 20px;
       padding: 30px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-      color: #E2E8F0;
+      box-shadow: 0 15px 35px rgba(15, 23, 42, 0.05);
+      color: #334155;
       z-index: 10;
       text-align: left;
     }
@@ -3534,21 +3534,21 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       align-items: center;
       gap: 15px;
       margin-bottom: 25px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
       padding-bottom: 15px;
     }
     
     .verification-card .verify-shield {
       width: 28px;
       height: 28px;
-      color: #34D399;
+      color: #10B981;
     }
     
     .verification-card h2 {
       font-size: 18px;
       font-weight: 700;
       letter-spacing: 0.5px;
-      color: #FFFFFF;
+      color: #1E3A8A;
       margin: 0;
     }
     
@@ -3569,33 +3569,33 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #94A3B8;
+      color: #64748B;
       font-weight: 700;
     }
     
     .verification-card .item-value {
       font-size: 15px;
-      color: #F8FAFC;
+      color: #0F172A;
       font-weight: 600;
     }
     
     .verification-card .font-mono {
       font-family: monospace;
       letter-spacing: 0.5px;
-      color: var(--gold-light, #F5A623);
+      color: #D97706; /* gold accent */
     }
     
     .verification-card .status-verified {
-      color: #34D399;
+      color: #10B981;
       font-weight: 700;
     }
     
     .verification-card .card-footer {
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid rgba(15, 23, 42, 0.05);
       padding-top: 20px;
       font-size: 12.5px;
       line-height: 1.6;
-      color: #94A3B8;
+      color: #64748B;
     }
 
     /* Ambient Certificate Glow */
@@ -3606,7 +3606,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       transform: translate(-50%, -50%);
       width: 1000px;
       height: 700px;
-      background: radial-gradient(ellipse at center, rgba(147, 197, 253, 0.06) 0%, rgba(245, 158, 11, 0.03) 50%, rgba(10, 25, 47, 0) 100%);
+      background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.05) 0%, rgba(245, 158, 11, 0.02) 50%, rgba(255, 255, 255, 0) 100%);
       pointer-events: none;
       z-index: 0;
       border-radius: 50%;
@@ -4069,13 +4069,13 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       justify-content: center;
       gap: 15px;
       z-index: 10;
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.6);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       padding: 14px 28px;
       border-radius: 50px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
     }
 
     .btn {
@@ -4088,7 +4088,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       border: none;
       border-radius: 50px;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       align-items: center;
@@ -4097,24 +4097,23 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     .btn-print {
-      background: linear-gradient(135deg, var(--gold, #D97706), var(--gold-light, #F5A623));
+      background: linear-gradient(135deg, #1E3A8A, #2563EB);
       color: white;
     }
 
     .btn-print:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(217, 119, 6, 0.3);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.25);
     }
 
     .btn-back {
-      background: rgba(255, 255, 255, 0.05);
-      color: #FFFFFF;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: white;
+      color: #1E3A8A;
+      border: 1.5px solid #1E3A8A;
     }
 
     .btn-back:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: #F1F5F9;
       transform: translateY(-2px);
     }
 
