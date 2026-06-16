@@ -451,6 +451,10 @@ const verifyHtml = (certNo, student, success) => {
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   };
 
+  const certTypeStr = (student.certificate_type || 'INTERNSHIP').toUpperCase();
+  const domainLabel = certTypeStr === 'INTERNSHIP' ? 'Internship Domain' : 'Program / Event Domain';
+  const datesLabel = certTypeStr === 'INTERNSHIP' ? 'Internship Dates' : 'Program Dates';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -619,7 +623,7 @@ const verifyHtml = (certNo, student, success) => {
       Verified Credential
     </div>
     
-    <h1>Credential Verified Successfully</h1>
+    <h1>${certTypeStr} Credential Verified Successfully</h1>
     <p class="subtitle">This certificate has been verified as authentic and officially issued by ATPS.</p>
     
     <div class="details-grid">
@@ -644,7 +648,7 @@ const verifyHtml = (certNo, student, success) => {
         <span class="detail-value">${student.degree}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Internship Domain</span>
+        <span class="detail-label">${domainLabel}</span>
         <span class="detail-value">${student.domain}</span>
       </div>
       <div class="detail-item">
@@ -652,7 +656,7 @@ const verifyHtml = (certNo, student, success) => {
         <span class="detail-value">${student.duration}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Internship Dates</span>
+        <span class="detail-label">${datesLabel}</span>
         <span class="detail-value" style="font-size: 13px;">${formatDate(student.start_date)} — ${formatDate(student.end_date)}</span>
       </div>
     </div>
@@ -1969,7 +1973,7 @@ const adminHtml = (certificates, message = '', error = '') => {
               </div>
               
               <div class="form-group">
-                <label>Internship Domain</label>
+                <label>Domain / Program</label>
                 <input type="text" name="domain" class="form-control" placeholder="e.g. Accounting" required>
               </div>
 
@@ -3070,9 +3074,91 @@ fastify.get('/verify', async (request, reply) => {
   }
 });
 
+// Route: Secure Download Email Prompt
+fastify.get('/secure-download/:certNoEncoded', async (request, reply) => {
+  const certNoEncoded = request.params.certNoEncoded;
+  const certNo = certNoEncoded.replace(/_/g, '/');
+
+  try {
+    const res = await pool.query('SELECT student_name FROM certificates WHERE certificate_no = $1', [certNo]);
+    if (res.rows.length === 0) {
+      return reply.status(404).send('Certificate not found');
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Certificate Access</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Montserrat', sans-serif; background: #0A192F; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .card { background: rgba(255,255,255,0.05); padding: 40px; border-radius: 12px; border: 1px solid rgba(217,119,6,0.3); text-align: center; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    h2 { margin-top: 0; color: #D97706; }
+    input { width: 100%; padding: 14px; margin: 20px 0; border-radius: 6px; border: 1px solid #1E3E62; background: #172A45; color: #fff; font-family: inherit; font-size: 15px; box-sizing: border-box; }
+    input:focus { outline: none; border-color: #D97706; }
+    button { background: #D97706; color: #fff; padding: 14px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; transition: background 0.3s; }
+    button:hover { background: #B45309; }
+    .error { color: #EF4444; font-size: 13px; margin-bottom: 15px; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Access Certificate</h2>
+    <p style="font-size: 14px; color: #8892B0;">Enter the email address associated with your certificate to verify your identity.</p>
+    \${request.query.error ? '<div class="error">Email address does not match our records.</div>' : ''}
+    <form method="POST" action="/secure-download/\${certNoEncoded}">
+      <input type="email" name="email" placeholder="Your Email Address" required>
+      <button type="submit">Verify & Access</button>
+    </form>
+  </div>
+</body>
+</html>`;
+    return reply.type('text/html').send(html);
+  } catch (err) {
+    return reply.status(500).send('Database Error');
+  }
+});
+
+// Route: Validate Secure Download
+fastify.post('/secure-download/:certNoEncoded', async (request, reply) => {
+  const certNoEncoded = request.params.certNoEncoded;
+  const certNo = certNoEncoded.replace(/_/g, '/');
+  const submittedEmail = (request.body.email || '').trim().toLowerCase();
+
+  try {
+    const res = await pool.query('SELECT email FROM certificates WHERE certificate_no = $1', [certNo]);
+    if (res.rows.length === 0) {
+      return reply.status(404).send('Certificate not found');
+    }
+
+    const dbEmail = (res.rows[0].email || '').trim().toLowerCase();
+    
+    if (dbEmail === submittedEmail && dbEmail !== '') {
+      // Set a secure cookie valid for 1 hour to access this specific certificate
+      reply.setCookie(`cert_access_\${certNoEncoded}`, 'true', { path: '/', httpOnly: true, maxAge: 3600 });
+      return reply.redirect(`/certificate/\${certNoEncoded}`);
+    } else {
+      return reply.redirect(`/secure-download/\${certNoEncoded}?error=1`);
+    }
+  } catch (err) {
+    return reply.status(500).send('Database Error');
+  }
+});
+
 // Route: View beautiful landscape certificate
 fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
-  const certNo = request.params.certNoEncoded.replace(/_/g, '/');
+  const certNoEncoded = request.params.certNoEncoded;
+  const certNo = certNoEncoded.replace(/_/g, '/');
+
+  // Check access authorization (Admin or Secure Link)
+  const isAdmin = request.cookies.auth === 'true';
+  const hasCertAccess = request.cookies[`cert_access_\${certNoEncoded}`] === 'true';
+  
+  if (!isAdmin && !hasCertAccess) {
+    return reply.redirect(`/secure-download/\${certNoEncoded}`);
+  }
 
   try {
     const res = await pool.query('SELECT * FROM certificates WHERE certificate_no = $1', [certNo]);
@@ -3913,33 +3999,6 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 </head>
 <body>
 
-  <!-- Theme Switcher Bar (Hidden on Print) -->
-  <div class="theme-switcher-bar no-print">
-    <div class="switcher-title"><i class="bi bi-palette-fill"></i> Select Premium Theme:</div>
-    <div class="theme-buttons">
-      <button class="theme-btn active" data-theme="theme-classic-gold" onclick="setTheme('theme-classic-gold')">
-        <span class="color-dot" style="background: linear-gradient(135deg, #0A192F, #D97706);"></span>
-        Classic Gold
-      </button>
-      <button class="theme-btn" data-theme="theme-ocean-blue" onclick="setTheme('theme-ocean-blue')">
-        <span class="color-dot" style="background: linear-gradient(135deg, #0F3057, #008891);"></span>
-        Ocean Blue
-      </button>
-      <button class="theme-btn" data-theme="theme-royal-maroon" onclick="setTheme('theme-royal-maroon')">
-        <span class="color-dot" style="background: linear-gradient(135deg, #4A0E17, #C5A880);"></span>
-        Royal Maroon
-      </button>
-      <button class="theme-btn" data-theme="theme-forest-green" onclick="setTheme('theme-forest-green')">
-        <span class="color-dot" style="background: linear-gradient(135deg, #133B2E, #D4AF37);"></span>
-        Forest Green
-      </button>
-      <button class="theme-btn" data-theme="theme-purple-royal" onclick="setTheme('theme-purple-royal')">
-        <span class="color-dot" style="background: linear-gradient(135deg, #2A1B3D, #A29BFE);"></span>
-        Purple Royal
-      </button>
-    </div>
-  </div>
-
   <!-- Certificate Container Wrapper -->
   <div class="cert-wrapper">
     <!-- Certificate Container -->
@@ -4133,9 +4192,23 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       </svg>
       Download PDF
     </button>
-    <a class="btn btn-back" href="/admin">
-      Admin Panel
+    <a class="btn btn-back" href="#" onclick="shareOnLinkedIn(event)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+      </svg>
+      Share on LinkedIn
     </a>
+    <a class="btn btn-back" href="#" onclick="nativeShare(event)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"></circle>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="19" r="3"></circle>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+      </svg>
+      Share
+    </a>
+    \${isAdmin ? \`<a class="btn btn-back" href="/admin">Admin Panel</a>\` : ''}
   </div>
 
   <!-- Dynamic QR Code Script -->
@@ -4155,28 +4228,29 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         });
       }
 
-      // Initialize Theme preference
-      const savedTheme = "${certThemeClass}";
-      setTheme(savedTheme);
     });
 
-    function setTheme(themeName) {
-      const container = document.querySelector('.cert-container');
-      if (!container) return;
-      
-      const themes = ['theme-classic-gold', 'theme-ocean-blue', 'theme-royal-maroon', 'theme-forest-green', 'theme-purple-royal'];
-      themes.forEach(t => container.classList.remove(t));
-      container.classList.add(themeName);
-      
-      document.querySelectorAll('.theme-btn').forEach(btn => {
-        if (btn.getAttribute('data-theme') === themeName) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
+    function shareOnLinkedIn(e) {
+      e.preventDefault();
+      const url = encodeURIComponent(window.location.href);
+      window.open(\`https://www.linkedin.com/sharing/share-offsite/?url=\${url}\`, '_blank');
+    }
+
+    async function nativeShare(e) {
+      e.preventDefault();
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'My Certificate',
+            text: 'Check out my certificate from Aadhira Training and Placement Solutions!',
+            url: window.location.href,
+          });
+        } catch (err) {
+          console.error('Error sharing:', err);
         }
-      });
-      
-      localStorage.setItem('certThemePreference', themeName);
+      } else {
+        alert('Web Share API is not supported in your browser. You can copy the URL to share.');
+      }
     }
 
     // ── Client-side PDF Generation helper ────────────────────
@@ -4686,46 +4760,24 @@ fastify.post('/admin/delete', { preHandler: checkAuth }, async (request, reply) 
   }
 });
 
-// Dynamic background PDF generator & Brevo SMTP email sender
+// Dynamic background SMTP email sender for Secure Download Link
 async function generateAndEmailCertificate(certificateNo, studentName, recipientEmail) {
-  let browser;
   try {
-    const puppeteer = require('puppeteer');
-    const port = process.env.PORT || 3000;
-    const certUrl = `http://localhost:${port}/certificate/${certificateNo.replace(/\//g, '_')}`;
+    const certNoEncoded = certificateNo.replace(/\//g, '_');
+    const downloadUrl = `${process.env.APP_URL || 'https://aadhira.onrender.com'}/secure-download/${certNoEncoded}`;
     
-    logDbMessage(`[Background Email] Launching Puppeteer to generate PDF for certificate ${certificateNo} (URL: ${certUrl})`);
-    
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    
-    const page = await browser.newPage();
-    
-    // Set a viewport size that matches A4 ratio
-    await page.setViewport({
-      width: 1123,
-      height: 794,
-      deviceScaleFactor: 2 // Boost quality for high resolution!
-    });
-    
-    await page.goto(certUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-    
-    // Generate PDF using landscape format matching the CSS layout
-    const pdfBuffer = await page.pdf({
-      printBackground: true,
-      landscape: true,
-      format: 'A4',
-      margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
-    });
-    
-    await browser.close();
-    browser = null;
-    
-    const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
-    const filename = `Certificate_${studentName.replace(/\s+/g, '_')}.pdf`;
-    
+    // Fetch certificate type for dynamic email subject
+    let certType = 'Internship';
+    try {
+      const res = await pool.query('SELECT certificate_type FROM certificates WHERE certificate_no = $1', [certificateNo]);
+      if (res.rows.length > 0 && res.rows[0].certificate_type) {
+        let typeVal = res.rows[0].certificate_type;
+        certType = typeVal.charAt(0).toUpperCase() + typeVal.slice(1).toLowerCase();
+      }
+    } catch (e) {
+      console.error('Failed to fetch cert type:', e);
+    }
+
     // Send email using our existing Brevo integration code directly
     const apiKey = process.env.BREVO_API_KEY;
     const senderEmail = process.env.BREVO_SENDER_EMAIL || 'vsgrpsemail@gmail.com';
@@ -4736,7 +4788,7 @@ async function generateAndEmailCertificate(certificateNo, studentName, recipient
       return;
     }
     
-    logDbMessage(`[Background Email] Attempting to send certificate ${certificateNo} to ${studentName} (${recipientEmail})`);
+    logDbMessage(`[Background Email] Attempting to send secure link for certificate ${certificateNo} to ${studentName} (${recipientEmail})`);
     
     const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
       sender: {
@@ -4749,23 +4801,25 @@ async function generateAndEmailCertificate(certificateNo, studentName, recipient
           name: studentName
         }
       ],
-      subject: `Certificate of Internship - ${studentName}`,
+      subject: `Secure Download Link: Certificate of ${certType} - ${studentName}`,
       htmlContent: `
         <html>
-          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h2 style="color: #0A192F;">Aadhira Training and Placement Solutions</h2>
+            </div>
             <p>Dear <strong>${studentName}</strong>,</p>
-            <p>Congratulations on successfully completing your internship!</p>
-            <p>Please find attached your Certificate of Internship (No. ${certificateNo}) issued by <strong>Aadhira Training and Placement Solutions (ATPS)</strong>.</p>
+            <p>Congratulations on successfully completing your program!</p>
+            <p>Your Certificate of ${certType} (No. <strong>${certificateNo}</strong>) has been generated and is ready for download.</p>
+            <div style="text-align: center; margin: 40px 0;">
+              <a href="${downloadUrl}" style="background-color: #D97706; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Access Your Certificate</a>
+            </div>
+            <p style="font-size: 13px; color: #666;">For security purposes, you will need to verify your email address (${recipientEmail}) to access the certificate.</p>
+            <hr style="border: 1px solid #eee; margin: 30px 0;">
             <p>Warm regards,<br><strong>Aadhira Solutions Team</strong></p>
           </body>
         </html>
-      `,
-      attachment: [
-        {
-          content: pdfBase64,
-          name: filename
-        }
-      ]
+      `
     }, {
       headers: {
         'api-key': apiKey,
@@ -4774,11 +4828,8 @@ async function generateAndEmailCertificate(certificateNo, studentName, recipient
       }
     });
     
-    logDbMessage(`[Background Email Success] Certificate ${certificateNo} successfully sent to ${recipientEmail}. Message ID: ${response.data.messageId || 'unknown'}`);
+    logDbMessage(`[Background Email Success] Secure link for certificate ${certificateNo} successfully sent to ${recipientEmail}. Message ID: ${response.data.messageId || 'unknown'}`);
   } catch (err) {
-    if (browser) {
-      await browser.close().catch(() => {});
-    }
     let errMsg = err.message;
     if (err.response && err.response.data) {
       errMsg += ' - ' + JSON.stringify(err.response.data);
@@ -4787,12 +4838,12 @@ async function generateAndEmailCertificate(certificateNo, studentName, recipient
   }
 }
 
-// Action: Send certificate email via Brevo SMTP API
+// Action: Send certificate email via Brevo SMTP API (Fallback / manual trigger)
 fastify.post('/api/send-email', { preHandler: checkAuth }, async (request, reply) => {
-  const { email, studentName, pdfBase64, filename, certificateNo } = request.body || {};
+  const { email, studentName, certificateNo } = request.body || {};
 
-  if (!email || !studentName || !pdfBase64) {
-    return reply.status(400).send({ success: false, error: 'Missing email, studentName, or pdfBase64' });
+  if (!email || !studentName || !certificateNo) {
+    return reply.status(400).send({ success: false, error: 'Missing email, studentName, or certificateNo' });
   }
 
   const apiKey = process.env.BREVO_API_KEY;
@@ -4805,9 +4856,23 @@ fastify.post('/api/send-email', { preHandler: checkAuth }, async (request, reply
     return reply.status(500).send({ success: false, error: errorMsg });
   }
 
-  logDbMessage(`[Email] Attempting to send certificate ${certificateNo || 'unknown'} to ${studentName} (${email})`);
+  logDbMessage(`[Email] Attempting to send secure link for ${certificateNo} to ${studentName} (${email})`);
 
   try {
+    const certNoEncoded = certificateNo.replace(/\//g, '_');
+    const downloadUrl = `${process.env.APP_URL || 'https://aadhira.onrender.com'}/secure-download/${certNoEncoded}`;
+
+    let certType = 'Internship';
+    try {
+      const res = await pool.query('SELECT certificate_type FROM certificates WHERE certificate_no = $1', [certificateNo]);
+      if (res.rows.length > 0 && res.rows[0].certificate_type) {
+        let typeVal = res.rows[0].certificate_type;
+        certType = typeVal.charAt(0).toUpperCase() + typeVal.slice(1).toLowerCase();
+      }
+    } catch (e) {
+      console.error('Failed to fetch cert type:', e);
+    }
+
     const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
       sender: {
         name: senderName,
@@ -4819,23 +4884,25 @@ fastify.post('/api/send-email', { preHandler: checkAuth }, async (request, reply
           name: studentName
         }
       ],
-      subject: `Certificate of Internship - ${studentName}`,
+      subject: `Secure Download Link: Certificate of ${certType} - ${studentName}`,
       htmlContent: `
         <html>
-          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h2 style="color: #0A192F;">Aadhira Training and Placement Solutions</h2>
+            </div>
             <p>Dear <strong>${studentName}</strong>,</p>
-            <p>Congratulations on successfully completing your internship!</p>
-            <p>Please find attached your Certificate of Internship (No. ${certificateNo || 'N/A'}) issued by <strong>Aadhira Training and Placement Solutions (ATPS)</strong>.</p>
+            <p>Congratulations on successfully completing your program!</p>
+            <p>Your Certificate of ${certType} (No. <strong>${certificateNo || 'N/A'}</strong>) has been generated and is ready for download.</p>
+            <div style="text-align: center; margin: 40px 0;">
+              <a href="${downloadUrl}" style="background-color: #D97706; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Access Your Certificate</a>
+            </div>
+            <p style="font-size: 13px; color: #666;">For security purposes, you will need to verify your email address (${email}) to access the certificate.</p>
+            <hr style="border: 1px solid #eee; margin: 30px 0;">
             <p>Warm regards,<br><strong>Aadhira Solutions Team</strong></p>
           </body>
         </html>
-      `,
-      attachment: [
-        {
-          content: pdfBase64,
-          name: filename || `Certificate_${studentName.replace(/\s+/g, '_')}.pdf`
-        }
-      ]
+      `
     }, {
       headers: {
         'api-key': apiKey,
