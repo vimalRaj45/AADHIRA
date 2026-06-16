@@ -3657,6 +3657,74 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       }
     }
 
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 12px;
+      }
+      .page-header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        text-align: center;
+      }
+      .page-header-logo {
+        flex-direction: column;
+        gap: 6px;
+      }
+      .page-header-title {
+        font-size: 13px;
+        letter-spacing: 1.5px;
+      }
+      .badge-verified {
+        padding: 4px 12px;
+        font-size: 10px;
+      }
+      .controls {
+        margin-top: 25px;
+        padding: 12px 16px;
+        border-radius: 20px;
+        gap: 10px;
+        width: 100%;
+      }
+      .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 20px;
+        font-size: 11.5px;
+      }
+      .verification-card {
+        padding: 20px;
+        margin-top: 25px;
+        border-radius: 16px;
+      }
+      .verification-card .card-header {
+        gap: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+      }
+      .verification-card h2 {
+        font-size: 16px;
+      }
+      .verification-card .card-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        margin-bottom: 15px;
+      }
+      .verification-card .grid-item {
+        gap: 3px;
+      }
+      .verification-card .item-value {
+        font-size: 14px;
+      }
+      .verification-card .card-footer {
+        padding-top: 15px;
+        font-size: 11.5px;
+      }
+    }
+
     /* Outer Borders */
     .border-outer {
       position: absolute;
