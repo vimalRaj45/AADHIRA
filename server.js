@@ -3152,13 +3152,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   const certNoEncoded = request.params.certNoEncoded;
   const certNo = certNoEncoded.replace(/_/g, '/').trim();
 
-  // Check access authorization (Admin or Secure Link)
+  // Check if admin (used later for showing admin controls)
   const isAdmin = request.cookies.auth === 'true';
-  const hasCertAccess = request.cookies[`cert_access_${certNoEncoded}`] === 'true';
-  
-  if (!isAdmin && !hasCertAccess) {
-    return reply.redirect(`/secure-download/${certNoEncoded}`);
-  }
 
   try {
     const res = await pool.query('SELECT * FROM certificates WHERE UPPER(certificate_no) = UPPER($1)', [certNo]);
