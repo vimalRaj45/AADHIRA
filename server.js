@@ -3137,10 +3137,10 @@ fastify.post('/secure-download/:certNoEncoded', async (request, reply) => {
     
     if (dbEmail === submittedEmail && dbEmail !== '') {
       // Set a secure cookie valid for 1 hour to access this specific certificate
-      reply.setCookie(`cert_access_\${certNoEncoded}`, 'true', { path: '/', httpOnly: true, maxAge: 3600 });
-      return reply.redirect(`/certificate/\${certNoEncoded}`);
+      reply.setCookie(`cert_access_${certNoEncoded}`, 'true', { path: '/', httpOnly: true, maxAge: 3600 });
+      return reply.redirect(`/certificate/${certNoEncoded}`);
     } else {
-      return reply.redirect(`/secure-download/\${certNoEncoded}?error=1`);
+      return reply.redirect(`/secure-download/${certNoEncoded}?error=1`);
     }
   } catch (err) {
     return reply.status(500).send('Database Error');
@@ -3154,10 +3154,10 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
   // Check access authorization (Admin or Secure Link)
   const isAdmin = request.cookies.auth === 'true';
-  const hasCertAccess = request.cookies[`cert_access_\${certNoEncoded}`] === 'true';
+  const hasCertAccess = request.cookies[`cert_access_${certNoEncoded}`] === 'true';
   
   if (!isAdmin && !hasCertAccess) {
-    return reply.redirect(`/secure-download/\${certNoEncoded}`);
+    return reply.redirect(`/secure-download/${certNoEncoded}`);
   }
 
   try {
