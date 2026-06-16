@@ -2037,7 +2037,7 @@ const adminHtml = (certificates, message = '', error = '') => {
               </div>
               
               <div class="form-group full-width">
-                <label><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template / Theme</label>
+                <label><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template / Theme <a href="/preview-templates" target="_blank" style="float: right; font-size: 12px; color: var(--accent-blue); text-decoration: none;"><i class="bi bi-eye"></i> Preview Themes</a></label>
                 <select name="template" class="form-control" required>
                   <option value="classic">Classic Gold</option>
                   <option value="blue">Ocean Blue</option>
@@ -2122,7 +2122,7 @@ const adminHtml = (certificates, message = '', error = '') => {
             </div>
             
             <div style="margin-bottom: 18px; padding: 16px 20px; background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.3); border-radius: 10px;">
-              <label style="font-size: 13px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 10px;"><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template for this Batch</label>
+              <label style="font-size: 13px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 10px;"><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template for this Batch <a href="/preview-templates" target="_blank" style="float: right; font-weight: normal; color: var(--accent-blue); text-decoration: none;"><i class="bi bi-eye"></i> Preview Themes</a></label>
               <select id="batchTemplate" class="form-control" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 14px; font-size: 13.5px; width: 100%;">
                 <option value="classic">Classic Gold</option>
                 <option value="blue">Ocean Blue</option>
@@ -2247,7 +2247,7 @@ const adminHtml = (certificates, message = '', error = '') => {
             </div>
             
             <div class="form-group full-width">
-              <label><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template / Theme</label>
+              <label><i class="bi bi-palette-fill" style="color:var(--gold-light);"></i> Certificate Template / Theme <a href="/preview-templates" target="_blank" style="float: right; font-size: 12px; color: var(--accent-blue); text-decoration: none;"><i class="bi bi-eye"></i> Preview Themes</a></label>
               <select name="template" id="edit-template" class="form-control" required>
                 <option value="classic">Classic Gold</option>
                 <option value="blue">Ocean Blue</option>
@@ -3147,6 +3147,52 @@ fastify.post('/secure-download/:certNoEncoded', async (request, reply) => {
   }
 });
 
+// Route: Preview All Themes
+fastify.get('/preview-templates', async (request, reply) => {
+  const isAdmin = request.cookies.auth === 'true';
+  if (!isAdmin) return reply.status(403).send('Unauthorized');
+
+  try {
+    const res = await pool.query('SELECT certificate_no FROM certificates LIMIT 1');
+    const sampleCert = res.rows.length > 0 ? res.rows[0].certificate_no.replace(/\//g, '_') : '';
+
+    if (!sampleCert) {
+      return reply.type('text/html').send('<h2>No certificates available to use for preview. Please add at least one certificate first.</h2>');
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Theme Previews</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Montserrat', sans-serif; background: #0A192F; color: #fff; padding: 30px; text-align: center; margin: 0; }
+    h2 { color: #D97706; margin-bottom: 30px; font-weight: 800; font-size: 28px; }
+    .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; }
+    .preview-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; border: 1px solid rgba(217,119,6,0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    h3 { margin: 0 0 15px 0; color: #E2E8F0; font-size: 18px; }
+    .iframe-wrapper { width: 560px; height: 396px; overflow: hidden; border-radius: 6px; border: 2px solid #1E3E62; }
+    iframe { width: 1120px; height: 792px; border: none; transform: scale(0.5); transform-origin: top left; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <h2>Available Certificate Themes</h2>
+  <div class="grid">
+    <div class="preview-card"><h3>Classic Gold</h3><div class="iframe-wrapper"><iframe src="/certificate/${sampleCert}?previewTheme=classic" scrolling="no"></iframe></div></div>
+    <div class="preview-card"><h3>Ocean Blue</h3><div class="iframe-wrapper"><iframe src="/certificate/${sampleCert}?previewTheme=blue" scrolling="no"></iframe></div></div>
+    <div class="preview-card"><h3>Royal Maroon</h3><div class="iframe-wrapper"><iframe src="/certificate/${sampleCert}?previewTheme=maroon" scrolling="no"></iframe></div></div>
+    <div class="preview-card"><h3>Forest Green</h3><div class="iframe-wrapper"><iframe src="/certificate/${sampleCert}?previewTheme=forest" scrolling="no"></iframe></div></div>
+    <div class="preview-card"><h3>Purple Royal</h3><div class="iframe-wrapper"><iframe src="/certificate/${sampleCert}?previewTheme=purple" scrolling="no"></iframe></div></div>
+  </div>
+</body>
+</html>`;
+    return reply.type('text/html').send(html);
+  } catch (err) {
+    return reply.status(500).send('Database Error');
+  }
+});
+
 // Route: View beautiful landscape certificate
 fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   const certNoEncoded = request.params.certNoEncoded;
@@ -3190,7 +3236,12 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       'forest': 'theme-forest-green',
       'purple': 'theme-purple-royal'
     };
-    const certThemeClass = themeClassMap[row.template || 'classic'] || 'theme-classic-gold';
+    let certThemeClass = themeClassMap[row.template || 'classic'] || 'theme-classic-gold';
+
+    // Admin preview override
+    if (isAdmin && request.query.previewTheme && themeClassMap[request.query.previewTheme]) {
+      certThemeClass = themeClassMap[request.query.previewTheme];
+    }
 
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
