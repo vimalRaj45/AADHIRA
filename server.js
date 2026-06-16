@@ -3407,15 +3407,210 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     body {
-      background-color: var(--bg);
+      background: radial-gradient(circle at 50% 50%, #0F172A 0%, #020617 100%);
       font-family: 'Montserrat', sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      padding: 20px;
+      padding: 40px 20px;
       overflow-x: hidden; /* Prevent horizontal scrolling on mobile */
+      position: relative;
+    }
+
+    /* Abstract Background Blobs */
+    .bg-shape {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.12;
+    }
+    
+    .shape-1 {
+      top: -10%;
+      left: -10%;
+      width: 500px;
+      height: 500px;
+      background: #D97706;
+    }
+    
+    .shape-2 {
+      bottom: -10%;
+      right: -10%;
+      width: 600px;
+      height: 600px;
+      background: #1E3A8A;
+    }
+
+    /* Page Header Styles */
+    .page-header {
+      width: 100%;
+      max-width: 1122px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 32px;
+      margin-bottom: 30px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+    }
+    
+    .page-header-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .page-header-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #FFF 0%, var(--gold-light, #F5A623) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .badge-verified {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34D399;
+      border-radius: 50px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.08);
+      animation: pulse-glow 2s infinite alternate;
+    }
+    
+    @keyframes pulse-glow {
+      0% {
+        box-shadow: 0 0 5px rgba(16, 185, 129, 0.08);
+      }
+      100% {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+      }
+    }
+    
+    .badge-icon {
+      width: 15px;
+      height: 15px;
+    }
+
+    /* Verification Card Styles */
+    .verification-card {
+      width: 100%;
+      max-width: 1122px;
+      margin-top: 40px;
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+      color: #E2E8F0;
+      z-index: 10;
+      text-align: left;
+    }
+    
+    .verification-card .card-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 25px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 15px;
+    }
+    
+    .verification-card .verify-shield {
+      width: 28px;
+      height: 28px;
+      color: #34D399;
+    }
+    
+    .verification-card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #FFFFFF;
+      margin: 0;
+    }
+    
+    .verification-card .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 25px;
+      margin-bottom: 25px;
+    }
+    
+    .verification-card .grid-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .verification-card .item-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94A3B8;
+      font-weight: 700;
+    }
+    
+    .verification-card .item-value {
+      font-size: 15px;
+      color: #F8FAFC;
+      font-weight: 600;
+    }
+    
+    .verification-card .font-mono {
+      font-family: monospace;
+      letter-spacing: 0.5px;
+      color: var(--gold-light, #F5A623);
+    }
+    
+    .verification-card .status-verified {
+      color: #34D399;
+      font-weight: 700;
+    }
+    
+    .verification-card .card-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 20px;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #94A3B8;
+    }
+
+    /* Ambient Certificate Glow */
+    .cert-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 1000px;
+      height: 700px;
+      background: radial-gradient(ellipse at center, rgba(147, 197, 253, 0.06) 0%, rgba(245, 158, 11, 0.03) 50%, rgba(10, 25, 47, 0) 100%);
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 50%;
+      filter: blur(60px);
     }
 
     /* Wrapper to scale and center the certificate on small viewports */
@@ -3868,50 +4063,58 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     /* Print & Floating Controls */
     .controls {
-      margin-top: 30px;
+      margin-top: 35px;
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 15px;
       z-index: 10;
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 14px 28px;
+      border-radius: 50px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
 
     .btn {
       padding: 12px 28px;
       font-family: 'Montserrat', sans-serif;
-      font-size: 14px;
+      font-size: 12.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1.5px;
+      letter-spacing: 1.2px;
       border: none;
       border-radius: 50px;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(10, 25, 47, 0.15);
-      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       text-decoration: none;
     }
 
     .btn-print {
-      background: linear-gradient(135deg, var(--border-outer-color), #1E3A8A);
+      background: linear-gradient(135deg, var(--gold, #D97706), var(--gold-light, #F5A623));
       color: white;
     }
 
     .btn-print:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 25px rgba(10, 25, 47, 0.25);
+      box-shadow: 0 8px 25px rgba(217, 119, 6, 0.3);
     }
 
     .btn-back {
-      background: white;
-      color: var(--border-outer-color);
-      border: 1.5px solid var(--border-outer-color);
+      background: rgba(255, 255, 255, 0.05);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
     .btn-back:hover {
-      background: #F1F5F9;
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.3);
       transform: translateY(-2px);
     }
 
@@ -4058,9 +4261,30 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   </style>
 </head>
 <body>
+  <!-- Elegant Abstract Background Blobs -->
+  <div class="bg-shape shape-1 no-print"></div>
+  <div class="bg-shape shape-2 no-print"></div>
+
+  <!-- Top Header Navigation -->
+  <header class="page-header no-print">
+    <div class="page-header-logo">
+      <svg class="page-header-svg-logo" viewBox="0 0 100 100" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--gold, #D97706); vertical-align: middle;">
+        <path d="M50 15 L85 75 L15 75 Z"/>
+        <circle cx="50" cy="50" r="10" stroke="var(--gold-light, #F5A623)"/>
+      </svg>
+      <span class="page-header-title">AADHIRA Verification Portal</span>
+    </div>
+    <div class="badge-verified">
+      <svg class="badge-icon" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;">
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+      Verified Credential
+    </div>
+  </header>
 
   <!-- Certificate Container Wrapper -->
   <div class="cert-wrapper">
+    <div class="cert-glow no-print"></div>
     <!-- Certificate Container -->
     <div class="cert-container ${certThemeClass}">
     
@@ -4269,6 +4493,37 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       Share
     </a>
     ${isAdmin ? `<a class="btn btn-back" href="/admin">Admin Panel</a>` : ''}
+  </div>
+
+  <!-- Verification Details Card -->
+  <div class="verification-card no-print">
+    <div class="card-header">
+      <svg class="verify-shield" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+      <h2>Official Certificate Verification</h2>
+    </div>
+    <div class="card-grid">
+      <div class="grid-item">
+        <span class="item-label">Student Name</span>
+        <span class="item-value">${formattedData.student_name}</span>
+      </div>
+      <div class="grid-item">
+        <span class="item-label">Certificate ID</span>
+        <span class="item-value font-mono">${formattedData.certificate_no}</span>
+      </div>
+      <div class="grid-item">
+        <span class="item-label">Program Domain</span>
+        <span class="item-value">${formattedData.domain}</span>
+      </div>
+      <div class="grid-item">
+        <span class="item-label">Verification Status</span>
+        <span class="item-value status-verified">✓ Active & Verified</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      <p>This certificate is issued by Aadhira Training and Placement Solutions (ATPS) and is cryptographically registered. Use the QR code on the certificate or this URL to verify at any time.</p>
+    </div>
   </div>
 
   <!-- Dynamic QR Code Script -->
