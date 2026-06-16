@@ -2275,7 +2275,7 @@ const adminHtml = (certificates, message = '', error = '') => {
       </div>
       <div class="modal-body">
         <p style="font-size: 15px; line-height: 1.6;">Are you sure you want to permanently delete certificate <strong id="delete-cert-id-display" style="color:var(--gold-light); font-family: monospace;"></strong>?</p>
-        <p style="font-size: 14px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">This will remove the credential record for <strong id="delete-student-name-display" style="color:#fff;"></strong> from the system database. Verify portal search results will no longer resolve this ID.</p>
+        <p style="font-size: 14px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">This will remove the credential record for <strong id="delete-student-name-display" style="color:var(--text-main);"></strong> from the system database. Verify portal search results will no longer resolve this ID.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
