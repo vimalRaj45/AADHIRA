@@ -4764,7 +4764,7 @@ fastify.post('/admin/delete', { preHandler: checkAuth }, async (request, reply) 
 async function generateAndEmailCertificate(certificateNo, studentName, recipientEmail) {
   try {
     const certNoEncoded = certificateNo.replace(/\//g, '_');
-    const downloadUrl = `${process.env.APP_URL || 'https://aadhira.onrender.com'}/secure-download/${certNoEncoded}`;
+    const downloadUrl = `${process.env.APP_URL || 'https://aadhira.onrender.com'}/certificate/${certNoEncoded}`;
     
     // Fetch certificate type for dynamic email subject
     let certType = 'Internship';
@@ -4860,7 +4860,7 @@ fastify.post('/api/send-email', { preHandler: checkAuth }, async (request, reply
 
   try {
     const certNoEncoded = certificateNo.replace(/\//g, '_');
-    const downloadUrl = `${process.env.APP_URL || 'https://aadhira.onrender.com'}/secure-download/${certNoEncoded}`;
+    const downloadUrl = `${process.env.APP_URL || 'https://aadhira.onrender.com'}/certificate/${certNoEncoded}`;
 
     let certType = 'Internship';
     try {
