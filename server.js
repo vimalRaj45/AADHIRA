@@ -3237,11 +3237,14 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       'purple': 'theme-purple-royal'
     };
     let certThemeClass = themeClassMap[row.template || 'classic'] || 'theme-classic-gold';
-
     // Admin preview override
     if (isAdmin && request.query.previewTheme && themeClassMap[request.query.previewTheme]) {
       certThemeClass = themeClassMap[request.query.previewTheme];
     }
+
+    const issueDateObj = row.issue_date ? new Date(row.issue_date) : new Date();
+    const issueYear = issueDateObj.getFullYear();
+    const issueMonth = issueDateObj.getMonth() + 1;
 
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -3249,6 +3252,15 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Certificate of ${formattedData.certificate_type} - ${formattedData.student_name}</title>
+
+  <!-- Open Graph Meta Tags for LinkedIn and Social Sharing -->
+  <meta property="og:title" content="Certificate of ${formattedData.certificate_type.charAt(0) + formattedData.certificate_type.slice(1).toLowerCase()} - ${formattedData.student_name}">
+  <meta property="og:description" content="Verified certificate of ${formattedData.certificate_type.toLowerCase()} in ${formattedData.domain} from Aadhira Training and Placement Solutions (ATPS). Certificate No: ${formattedData.certificate_no}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://aadhira.onrender.com/certificate/${certNoEncoded}">
+  <meta property="og:image" content="https://aadhira.onrender.com/logos.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   
   <!-- Google Fonts for high-end look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3858,6 +3870,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     .controls {
       margin-top: 30px;
       display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 15px;
       z-index: 10;
     }
@@ -4238,11 +4252,17 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       </svg>
       Download PDF
     </button>
-    <a class="btn btn-back" href="#" onclick="shareOnLinkedIn(event)">
+    <a class="btn btn-back" href="#" onclick="shareOnLinkedIn(event)" title="Share this certificate link to your LinkedIn Feed">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
         <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
       </svg>
-      Share on LinkedIn
+      Share Feed
+    </a>
+    <a class="btn btn-back" href="#" onclick="addToLinkedInProfile(event)" title="Add this certificate to your LinkedIn Profile's Licenses & Certifications section">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+      </svg>
+      Add to Profile
     </a>
     <a class="btn btn-back" href="#" onclick="nativeShare(event)">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -4278,8 +4298,33 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     function shareOnLinkedIn(e) {
       e.preventDefault();
-      const url = encodeURIComponent(window.location.href);
+      let shareUrl = window.location.href;
+      const host = window.location.hostname;
+      // If we are testing locally, override with production URL so LinkedIn can scrape it
+      if (host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.') || host.startsWith('10.') || host.startsWith('172.')) {
+        shareUrl = 'https://aadhira.onrender.com/certificate/${certNoEncoded}';
+      }
+      const url = encodeURIComponent(shareUrl);
       window.open(\`https://www.linkedin.com/sharing/share-offsite/?url=\${url}\`, '_blank');
+    }
+
+    function addToLinkedInProfile(e) {
+      e.preventDefault();
+      const name = encodeURIComponent("Certificate of ${formattedData.certificate_type.charAt(0) + formattedData.certificate_type.slice(1).toLowerCase()} in ${formattedData.domain}");
+      const orgName = encodeURIComponent("Aadhira Training and Placement Solutions");
+      const issueYear = "${issueYear}";
+      const issueMonth = "${issueMonth}";
+      const certId = encodeURIComponent("${formattedData.certificate_no}");
+      
+      let shareUrl = window.location.href;
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.') || host.startsWith('10.') || host.startsWith('172.')) {
+        shareUrl = 'https://aadhira.onrender.com/certificate/${certNoEncoded}';
+      }
+      const certUrl = encodeURIComponent(shareUrl);
+      
+      const linkedinUrl = \`https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=\${name}&organizationName=\${orgName}&issueYear=\${issueYear}&issueMonth=\${issueMonth}&certId=\${certId}&certUrl=\${certUrl}\`;
+      window.open(linkedinUrl, '_blank');
     }
 
     async function nativeShare(e) {
