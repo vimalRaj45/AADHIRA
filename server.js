@@ -3077,10 +3077,10 @@ fastify.get('/verify', async (request, reply) => {
 // Route: Secure Download Email Prompt
 fastify.get('/secure-download/:certNoEncoded', async (request, reply) => {
   const certNoEncoded = request.params.certNoEncoded;
-  const certNo = certNoEncoded.replace(/_/g, '/');
+  const certNo = certNoEncoded.replace(/_/g, '/').trim();
 
   try {
-    const res = await pool.query('SELECT student_name FROM certificates WHERE certificate_no = $1', [certNo]);
+    const res = await pool.query('SELECT student_name FROM certificates WHERE UPPER(certificate_no) = UPPER($1)', [certNo]);
     if (res.rows.length === 0) {
       return reply.status(404).send('Certificate not found');
     }
@@ -3107,8 +3107,8 @@ fastify.get('/secure-download/:certNoEncoded', async (request, reply) => {
   <div class="card">
     <h2>Access Certificate</h2>
     <p style="font-size: 14px; color: #8892B0;">Enter the email address associated with your certificate to verify your identity.</p>
-    \${request.query.error ? '<div class="error">Email address does not match our records.</div>' : ''}
-    <form method="POST" action="/secure-download/\${certNoEncoded}">
+    ${request.query.error ? '<div class="error">Email address does not match our records.</div>' : ''}
+    <form method="POST" action="/secure-download/${certNoEncoded}">
       <input type="email" name="email" placeholder="Your Email Address" required>
       <button type="submit">Verify & Access</button>
     </form>
@@ -3124,11 +3124,11 @@ fastify.get('/secure-download/:certNoEncoded', async (request, reply) => {
 // Route: Validate Secure Download
 fastify.post('/secure-download/:certNoEncoded', async (request, reply) => {
   const certNoEncoded = request.params.certNoEncoded;
-  const certNo = certNoEncoded.replace(/_/g, '/');
+  const certNo = certNoEncoded.replace(/_/g, '/').trim();
   const submittedEmail = (request.body.email || '').trim().toLowerCase();
 
   try {
-    const res = await pool.query('SELECT email FROM certificates WHERE certificate_no = $1', [certNo]);
+    const res = await pool.query('SELECT email FROM certificates WHERE UPPER(certificate_no) = UPPER($1)', [certNo]);
     if (res.rows.length === 0) {
       return reply.status(404).send('Certificate not found');
     }
@@ -3150,7 +3150,7 @@ fastify.post('/secure-download/:certNoEncoded', async (request, reply) => {
 // Route: View beautiful landscape certificate
 fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   const certNoEncoded = request.params.certNoEncoded;
-  const certNo = certNoEncoded.replace(/_/g, '/');
+  const certNo = certNoEncoded.replace(/_/g, '/').trim();
 
   // Check access authorization (Admin or Secure Link)
   const isAdmin = request.cookies.auth === 'true';
@@ -3161,7 +3161,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   }
 
   try {
-    const res = await pool.query('SELECT * FROM certificates WHERE certificate_no = $1', [certNo]);
+    const res = await pool.query('SELECT * FROM certificates WHERE UPPER(certificate_no) = UPPER($1)', [certNo]);
     
     if (res.rows.length === 0) {
       return reply.status(404).send('Certificate not found');
@@ -4208,7 +4208,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       </svg>
       Share
     </a>
-    \${isAdmin ? \`<a class="btn btn-back" href="/admin">Admin Panel</a>\` : ''}
+    ${isAdmin ? `<a class="btn btn-back" href="/admin">Admin Panel</a>` : ''}
   </div>
 
   <!-- Dynamic QR Code Script -->
