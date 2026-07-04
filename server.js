@@ -4163,7 +4163,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       font-weight: 800;
       color: var(--border-outer-color);
       letter-spacing: 3px;
-      margin-bottom: 10px;
+      margin-bottom: 24px;
       position: relative;
       display: inline-block;
       transition: all 0.3s ease;
@@ -4172,7 +4172,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     .title::after {
       content: '';
       position: absolute;
-      bottom: -6px;
+      bottom: -12px;
       left: 15%;
       width: 70%;
       height: 2px;
