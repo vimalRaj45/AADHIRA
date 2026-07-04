@@ -4086,8 +4086,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .cert-id {
       position: absolute;
-      left: 210px;
-      top: -5px;
+      left: -20px;
+      top: -10px;
       font-size: 9.5px;
       color: var(--border-outer-color);
       font-weight: 700;
@@ -4356,7 +4356,6 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-left: 20px;
     }
 
     .signature-container {
@@ -4710,19 +4709,37 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     
     <!-- Modern Dynamic Diagonal Capsule Background Patterns (Combined Full-Screen SVG) -->
     <svg class="modern-patterns" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;" viewBox="0 0 1122 793">
-      <!-- Top-Left Corner Pattern -->
-      <line x1="0" y1="100" x2="100" y2="0" stroke="var(--border-outer-color)" stroke-width="32" stroke-linecap="round" />
-      <line x1="0" y1="160" x2="160" y2="0" stroke="var(--border-inner-color)" stroke-width="20" stroke-linecap="round" />
-      <line x1="0" y1="220" x2="220" y2="0" stroke="var(--border-outer-color)" stroke-width="24" stroke-linecap="round" />
-      <line x1="40" y1="260" x2="260" y2="40" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" />
-      <circle cx="110" cy="180" r="10" fill="var(--border-inner-color)" />
-      
-      <!-- Bottom-Right Corner Pattern -->
-      <line x1="1042" y1="793" x2="1122" y2="713" stroke="var(--border-outer-color)" stroke-width="32" stroke-linecap="round" />
-      <line x1="992" y1="793" x2="1122" y2="663" stroke="var(--border-inner-color)" stroke-width="20" stroke-linecap="round" />
-      <line x1="942" y1="793" x2="1122" y2="613" stroke="var(--border-outer-color)" stroke-width="24" stroke-linecap="round" />
-      <line x1="972" y1="743" x2="1102" y2="613" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" />
-      <circle cx="1032" cy="653" r="10" fill="var(--border-inner-color)" />
+      <!-- === TOP-LEFT CORNER PATTERN === -->
+      <!-- Background Tint Triangle -->
+      <polygon points="0,0 0,350 350,0" fill="var(--border-inner-color)" opacity="0.06" />
+      <!-- Solid Corner Triangle -->
+      <polygon points="0,0 0,140 140,0" fill="var(--border-outer-color)" />
+      <!-- Lighter Accent Diagonal Stripe -->
+      <polygon points="0,140 0,180 180,0 140,0" fill="var(--accent)" />
+      <!-- Main Diagonal Block 1 (Staggered Capsule 1) -->
+      <polygon points="30,170 80,170 150,100 100,100" fill="var(--border-outer-color)" />
+      <!-- Main Diagonal Block 2 (Staggered Capsule 2 - Touching Block 1) -->
+      <polygon points="150,100 220,30 270,30 200,100" fill="var(--border-outer-color)" />
+      <!-- Parallel Accent Line 1 (Outer) -->
+      <line x1="320" y1="0" x2="200" y2="120" stroke="var(--border-outer-color)" stroke-width="4" stroke-linecap="round" />
+      <!-- Parallel Accent Line 2 (Inner) -->
+      <line x1="70" y1="120" x2="0" y2="190" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" />
+
+      <!-- === BOTTOM-RIGHT CORNER PATTERN === -->
+      <!-- Background Tint Triangle -->
+      <polygon points="1122,793 1122,443 772,793" fill="var(--border-inner-color)" opacity="0.06" />
+      <!-- Solid Corner Triangle -->
+      <polygon points="1122,793 1122,653 982,793" fill="var(--border-outer-color)" />
+      <!-- Lighter Accent Diagonal Stripe -->
+      <polygon points="1122,653 1122,613 942,793 982,793" fill="var(--accent)" />
+      <!-- Main Diagonal Block 1 (Staggered Capsule 1) -->
+      <polygon points="1092,623 1042,623 972,693 1022,693" fill="var(--border-outer-color)" />
+      <!-- Main Diagonal Block 2 (Staggered Capsule 2 - Touching Block 1) -->
+      <polygon points="972,693 902,763 852,763 922,693" fill="var(--border-outer-color)" />
+      <!-- Parallel Accent Line 1 (Outer) -->
+      <line x1="802" y1="793" x2="922" y2="673" stroke="var(--border-outer-color)" stroke-width="4" stroke-linecap="round" />
+      <!-- Parallel Accent Line 2 (Inner) -->
+      <line x1="1052" y1="673" x2="1122" y2="603" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" />
     </svg>
     
     <!-- Borders -->
@@ -4927,7 +4944,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       </div>
 
       <!-- Verification QR & Details -->
-      <div class="verification-block" style="display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: auto; margin-right: 50px;">
+      <div class="verification-block" style="display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: auto;">
         <div class="verification-details" style="display: flex; flex-direction: column; justify-content: center; text-align: left; font-family: 'Montserrat', sans-serif; font-weight: 700; color: #718096; gap: 2px;">
           <div style="font-size: 8.5px; letter-spacing: 0.5px; color: #718096; line-height: 1.2;">PLACE:</div>
           <div style="font-size: 9px; letter-spacing: 0.5px; color: #4A5568; margin-bottom: 2px; line-height: 1.2;">${formattedData.place.toUpperCase()}</div>
