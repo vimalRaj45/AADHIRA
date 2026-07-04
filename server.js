@@ -4056,17 +4056,15 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       pointer-events: none;
       z-index: 1;
       opacity: 0.12;
-      overflow: hidden;
     }
 
     .watermark-img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 1520px;
-      height: 380px;
-      max-width: none;
-      max-height: none;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 0.2s ease;
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
     }
@@ -4967,6 +4965,23 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         });
       }
 
+      // Crop watermark tree logo from sprite sheet dynamically to prevent overflow and rendering bugs
+      const spriteImg = new Image();
+      spriteImg.onload = function() {
+        const canvas = document.createElement('canvas');
+        const size = spriteImg.height; 
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(spriteImg, 0, 0, size, size, 0, 0, size, size);
+        
+        const watermarkEl = document.querySelector('.watermark-img');
+        if (watermarkEl) {
+          watermarkEl.src = canvas.toDataURL();
+          watermarkEl.style.opacity = '1';
+        }
+      };
+      spriteImg.src = "${logosB64}";
     });
 
 
