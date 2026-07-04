@@ -4201,9 +4201,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     .medal-container {
       position: absolute;
       right: 0;
-      top: -10px;
-      width: 90px;
-      height: 120px;
+      top: -15px;
+      width: 110px;
+      height: 155px;
       display: flex;
       justify-content: flex-end;
     }
@@ -4763,7 +4763,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
       <!-- Gold Medal Ribbon -->
       <div class="medal-container">
-        <svg viewBox="0 0 120 180" width="80" height="120" style="filter: drop-shadow(0 4px 10px rgba(0,0,0,0.18));">
+        <svg viewBox="0 0 120 180" width="105" height="150" style="filter: drop-shadow(0 4px 10px rgba(0,0,0,0.18));">
           <defs>
             <!-- 3D Gold Gradient for Medal Body -->
             <linearGradient id="goldMedalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
