@@ -11,6 +11,30 @@ const fs = require('fs');
 
 require('dotenv').config();
 
+// Load Base64 assets at startup to prevent html2canvas 0x0 canvas creation errors
+let logosB64 = '';
+let msmeB64 = '';
+let isoB64 = '';
+let armsB64 = '';
+let ukB64 = '';
+let sigB64 = '';
+try {
+  logosB64 = fs.readFileSync(path.join(__dirname, 'logos_b64.txt'), 'utf8').trim();
+  msmeB64 = fs.readFileSync(path.join(__dirname, 'msme_new_b64.txt'), 'utf8').trim();
+  isoB64 = fs.readFileSync(path.join(__dirname, 'iso_new_b64.txt'), 'utf8').trim();
+  armsB64 = fs.readFileSync(path.join(__dirname, 'arms_new_b64.txt'), 'utf8').trim();
+  ukB64 = fs.readFileSync(path.join(__dirname, 'uk_b64.txt'), 'utf8').trim();
+  sigB64 = fs.readFileSync(path.join(__dirname, 'sig_b64.txt'), 'utf8').trim();
+} catch (e) {
+  console.error("Error reading base64 asset files, falling back to relative paths:", e.message);
+  logosB64 = '/logos.png';
+  msmeB64 = '/ministry-of-micro-small-and-medium-enterprises-logo-png.png';
+  isoB64 = '/logos.png';
+  armsB64 = '/logos.png';
+  ukB64 = '/logos.png';
+  sigB64 = '/signature.png';
+}
+
 fastify.register(require('@fastify/cookie'));
 fastify.register(require('@fastify/formbody'));
 
@@ -3503,26 +3527,27 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       --border-outer-color: #0A192F;
     }
 
-    /* Theme 1: Classic Gold (Default) */
+    /* Theme 1: Classic Gold (Default) — Premium Redesign */
     .cert-container.theme-classic-gold {
-      --navy: #0A192F;
-      --gold: #D97706;
-      --gold-light: #F5A623;
+      --navy: #0B1F4D;
+      --gold: #C9A227;
+      --gold-light: #E8C547;
+      --gold-dark: #9A7A1A;
       --accent: #E07A5F;
-      --paper: #FFFFFF;
+      --paper: #FEFEFE;
       --title-font: 'Cinzel', serif;
       --body-font: 'Montserrat', sans-serif;
       --recipient-font: 'Playfair Display', serif;
-      --recipient-font-size: 36px;
+      --recipient-font-size: 38px;
       --recipient-font-weight: 700;
-      --medal-grad-1: #FDE047;
-      --medal-grad-2: #F5A623;
-      --medal-grad-3: #D97706;
-      --medal-grad-4: #78350F;
-      --ribbon-grad-1: #0A192F;
-      --ribbon-grad-2: #1E3E62;
-      --ribbon-accent-1: #F5A623;
-      --ribbon-accent-2: #D97706;
+      --medal-grad-1: #F0D060;
+      --medal-grad-2: #C9A227;
+      --medal-grad-3: #A07A10;
+      --medal-grad-4: #6B4E0A;
+      --ribbon-grad-1: #0B1F4D;
+      --ribbon-grad-2: #1A3A7A;
+      --ribbon-accent-1: #C9A227;
+      --ribbon-accent-2: #E8C547;
       --border-outer-color: var(--navy);
       --border-inner-color: var(--gold);
     }
@@ -3854,12 +3879,15 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       background: var(--paper);
       position: relative;
       overflow: hidden;
-      box-shadow: 0 20px 50px rgba(10, 25, 47, 0.15);
-      border-radius: 4px;
+      box-shadow:
+        0 0 0 1px rgba(201,162,39,0.15),
+        0 25px 70px rgba(11, 31, 77, 0.22),
+        0 6px 20px rgba(11, 31, 77, 0.10);
+      border-radius: 2px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 40px;
+      justify-content: flex-start;
+      padding: 52px 48px 32px 48px;
       transition: background 0.3s ease;
     }
 
@@ -3948,125 +3976,122 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       }
     }
 
-    /* Outer Borders */
+    /* ═══════════════════════════════════════════════════
+       PREMIUM LUXURY DOUBLE-LINE BORDER
+       ═══════════════════════════════════════════════════ */
     .border-outer {
       position: absolute;
-      top: 15px;
-      left: 15px;
-      right: 15px;
-      bottom: 15px;
-      border: 8px solid var(--border-outer-color);
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      border: 3px solid var(--border-outer-color);
       pointer-events: none;
       transition: border-color 0.3s ease;
     }
 
     .border-inner {
       position: absolute;
-      top: 28px;
-      left: 28px;
-      right: 28px;
-      bottom: 28px;
-      border: 2px solid var(--border-inner-color);
+      top: 19px;
+      left: 19px;
+      right: 19px;
+      bottom: 19px;
+      border: 1px solid var(--border-inner-color);
       pointer-events: none;
       transition: border-color 0.3s ease;
     }
 
-    /* Border Corner Decorations */
+    /* Ultra-thin third accent line */
+    .border-accent {
+      position: absolute;
+      top: 22px;
+      left: 22px;
+      right: 22px;
+      bottom: 22px;
+      border: 1px solid rgba(201,162,39,0.35);
+      pointer-events: none;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       UNIVERSITY-STYLE ELEGANT CORNER ORNAMENTS
+       ═══════════════════════════════════════════════════ */
     .corner-dec {
       position: absolute;
-      width: 60px;
-      height: 60px;
-      border: 3px solid var(--border-inner-color);
+      width: 55px;
+      height: 55px;
       pointer-events: none;
       transition: border-color 0.3s ease;
     }
 
-    .corner-tl {
-      top: 25px;
-      left: 25px;
-      border-right: none;
-      border-bottom: none;
-    }
-
-    .corner-tr {
-      top: 25px;
-      right: 25px;
-      border-left: none;
-      border-bottom: none;
-    }
-
-    .corner-bl {
-      bottom: 25px;
-      left: 25px;
-      border-right: none;
-      border-top: none;
-    }
-
-    .corner-br {
-      bottom: 25px;
-      right: 25px;
-      border-left: none;
-      border-top: none;
-    }
+    /* Each corner is a small filled ornamental SVG */
+    .corner-tl { top: 13px; left: 13px; }
+    .corner-tr { top: 13px; right: 13px; }
+    .corner-bl { bottom: 13px; left: 13px; }
+    .corner-br { bottom: 13px; right: 13px; }
 
     /* Decorative Corner SVG Accents */
     .corner-svg {
       position: absolute;
-      width: 45px;
-      height: 45px;
+      width: 52px;
+      height: 52px;
       fill: var(--border-inner-color);
-      opacity: 0.85;
+      opacity: 0.9;
       transition: fill 0.3s ease;
     }
-    .svg-tl { top: 32px; left: 32px; }
-    .svg-tr { top: 32px; right: 32px; transform: rotate(90deg); }
-    .svg-bl { bottom: 32px; left: 32px; transform: rotate(-90deg); }
-    .svg-br { bottom: 32px; right: 32px; transform: rotate(180deg); }
+    .svg-tl { top: 10px; left: 10px; }
+    .svg-tr { top: 10px; right: 10px; transform: rotate(90deg); }
+    .svg-bl { bottom: 10px; left: 10px; transform: rotate(-90deg); }
+    .svg-br { bottom: 10px; right: 10px; transform: rotate(180deg); }
 
-    /* Watermark background using your real corporate Aadhira Tree logo */
+    /* ═══════════════════════════════════════════════════
+       AADHIRA TREE WATERMARK — 12% OPACITY CENTER
+       ═══════════════════════════════════════════════════ */
     .watermark {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 332.4px;
-      height: 340px;
+      width: 380px;
+      height: 380px;
       pointer-events: none;
       z-index: 1;
-      opacity: 0.08;
-      background-image: url('/logos.png');
-      background-size: 1329.7px 340px;
+      opacity: 0.07;
+      background-image: url('${logosB64}');
+      background-size: 1520px 380px;
       background-position: 0px 0px;
       background-repeat: no-repeat;
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
     }
 
-    /* Header Layout */
+    /* ═══════════════════════════════════════════════════
+       PREMIUM HEADER — AADHIRA OVERSIZED BRANDING
+       ═══════════════════════════════════════════════════ */
     .header {
       display: flex;
-      justify-content: center; /* PERFECT CENTER */
-      align-items: center;
+      justify-content: center;
+      align-items: flex-start;
       z-index: 2;
       position: relative;
       width: 100%;
       height: auto;
-      margin-top: 50px; /* PUSH IT DOWN */
-      margin-bottom: 0px;
+      margin-top: 0;
+      margin-bottom: 0;
     }
 
     .cert-id {
       position: absolute;
       left: 0;
-      top: -35px;
-      font-size: 11px;
+      top: 0;
+      font-size: 9.5px;
       color: var(--border-outer-color);
       font-weight: 700;
-      letter-spacing: 1.5px;
-      background: rgba(10, 25, 47, 0.05);
-      padding: 6px 12px;
-      border-radius: 4px;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      background: transparent;
+      padding: 4px 0;
       border-left: 3px solid var(--border-inner-color);
+      padding-left: 8px;
       transition: all 0.3s ease;
     }
 
@@ -4075,11 +4100,14 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       flex-direction: column;
       align-items: center;
       text-align: center;
+      gap: 0;
+      margin-top: -4px;
     }
 
     /* Brand Logo & Accreditations Sprites */
+    /* Original sprite sheet: 4 logos wide, each ~70.2px x 72px at 280.8px x 72px render size */
     .logo-sprite {
-      background-image: url('/logos.png');
+      background-image: url('${logosB64}');
       background-size: 280.8px 72px;
       background-repeat: no-repeat;
       display: inline-block;
@@ -4087,106 +4115,170 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       image-rendering: crisp-edges;
     }
 
+    /* AADHIRA Tree Logo — displayed at 88px x 92px
+       Scale: 92/72 = 1.278 → background-size: 359px 92px */
     .logo-aadhira {
       background-position: 0px 0px;
-      width: 69.7px;
-      height: 72px;
-      margin-bottom: 4px;
+      background-size: 359px 92px;
+      width: 88px;
+      height: 92px;
+      margin-bottom: 2px;
+      /* Note: drop-shadow removed — html2canvas cannot handle CSS filter on sprite elements */
     }
 
-    .company-subtitle {
-      font-size: 26px;
-      color: var(--border-inner-color);
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-top: 0px;
+    /* Main AADHIRA branding word — big, bold, ultra-premium */
+    .company-name {
+      font-family: 'Cinzel', serif;
+      font-size: 42px;
+      font-weight: 900;
+      color: var(--border-outer-color);
+      letter-spacing: 10px;
+      line-height: 1;
       margin-bottom: 4px;
+      text-shadow:
+        0 1px 0 rgba(201,162,39,0.2),
+        0 2px 12px rgba(11,31,77,0.08);
+    }
+
+    /* Subtitle — distinct Playfair italic for visual contrast from AADHIRA */
+    .company-subtitle {
+      font-family: 'Playfair Display', serif;
+      font-size: 14px;
+      font-style: italic;
+      font-weight: 600;
+      color: var(--border-inner-color);
+      letter-spacing: 1px;
+      margin-bottom: 5px;
       transition: color 0.3s ease;
+    }
+
+    /* Gold diamond separator */
+    .brand-divider {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+      color: var(--border-inner-color);
+      font-size: 9px;
+      letter-spacing: 2px;
+    }
+    .brand-divider::before,
+    .brand-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-inner-color), transparent);
+      width: 50px;
     }
 
     /* Center-Aligned Accreditation Badges */
     .accreditations {
       display: flex;
-      gap: 12px;
+      gap: 8px;
       justify-content: center;
       align-items: center;
+      margin-top: 0;
     }
 
-    .logo-iso {
-      background-position: -70.2px 0px;
-      width: 70.2px;
-      height: 72px;
-    }
-
-    .logo-arms {
-      background-position: -140.4px 0px;
-      width: 70.2px;
-      height: 72px;
-    }
-
+    /* Accreditation badges: displayed at 52px height each */
+    .logo-msme,
+    .logo-iso,
+    .logo-arms,
     .logo-uk {
-      background-position: -210.6px 0px;
-      width: 70.2px;
-      height: 72px;
-    }
-
-    .logo-msme {
-      height: 72px;
+      height: 52px;
       object-fit: contain;
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
+      opacity: 0.95;
+      transition: all 0.3s ease;
     }
 
     .medal-container {
       position: absolute;
       right: 0;
-      top: -45px;
-      width: 80px;
-      height: 100px;
+      top: -10px;
+      width: 90px;
+      height: 120px;
       display: flex;
       justify-content: flex-end;
     }
 
-    /* Body/Content Layout */
+    /* ═══════════════════════════════════════════════════
+       MAIN CONTENT — LUXURY TYPOGRAPHY
+       ═══════════════════════════════════════════════════ */
+
+    /* Body/Content Layout — fills all space between header and footer, starts at top */
     .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
       text-align: center;
       z-index: 2;
       position: relative;
-      margin-top: -8px;
-      margin-bottom: 5px;
+      margin-top: 4px;
+      margin-bottom: 0;
+      padding: 0;
+    }
+
+    /* Gold horizontal divider — ultra-luxury */
+    .gold-rule {
+      width: 280px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-inner-color) 30%, var(--gold-light, #E8C547) 50%, var(--border-inner-color) 70%, transparent);
+      margin: 0 auto 6px auto;
+      position: relative;
+    }
+    .gold-rule::before {
+      content: '✦';
+      position: absolute;
+      top: -7px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: var(--border-inner-color);
+      background: var(--paper);
+      padding: 0 6px;
+      line-height: 1;
     }
 
     .title {
       font-family: var(--title-font);
-      font-size: 30px;
+      font-size: 28px;
       font-weight: 800;
       color: var(--border-outer-color);
-      letter-spacing: 3px;
-      margin-bottom: 24px;
+      letter-spacing: 5px;
+      margin-bottom: 4px;
       position: relative;
       display: inline-block;
       transition: all 0.3s ease;
+      /* Subtle gold shimmer on title */
+      text-shadow:
+        0 1px 0 rgba(201,162,39,0.25),
+        0 0 30px rgba(201,162,39,0.05);
     }
 
+    /* Elegant thin line under title */
     .title::after {
       content: '';
       position: absolute;
-      bottom: -12px;
-      left: 15%;
-      width: 70%;
+      bottom: -10px;
+      left: 10%;
+      width: 80%;
       height: 2px;
-      background: linear-gradient(90deg, transparent, var(--border-inner-color), transparent);
+      background: linear-gradient(90deg, transparent, var(--border-inner-color) 25%, var(--gold-light, #E8C547) 50%, var(--border-inner-color) 75%, transparent);
       transition: background 0.3s ease;
     }
 
     .subtitle {
       font-family: 'Playfair Display', serif;
-      font-size: 16px;
+      font-size: 13px;
       font-style: italic;
-      color: #555;
-      margin-bottom: 20px;
-      letter-spacing: 0.5px;
+      color: #666;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      letter-spacing: 0.8px;
     }
 
     .recipient-name {
@@ -4194,31 +4286,40 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       font-size: var(--recipient-font-size);
       font-weight: var(--recipient-font-weight);
       color: var(--border-outer-color);
-      margin-bottom: 16px;
+      margin-bottom: 4px;
       display: inline-block;
       position: relative;
-      padding: 0 20px;
+      padding: 0 30px;
       transition: all 0.3s ease;
+      letter-spacing: 1px;
     }
 
+    .recipient-name::before,
     .recipient-name::after {
       content: '';
       position: absolute;
-      bottom: -4px;
-      left: 0;
+      bottom: -6px;
       width: 100%;
-      height: 2.2px;
-      background: linear-gradient(90deg, transparent, var(--gold-light), var(--border-inner-color), var(--gold-light), transparent);
+      left: 0;
+    }
+    .recipient-name::after {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold-light, #E8C547), var(--border-inner-color), var(--gold-light, #E8C547), transparent);
       transition: background 0.3s ease;
+    }
+    .recipient-name::before {
+      bottom: -10px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201,162,39,0.4), transparent);
     }
 
     .achievement-text {
       font-family: var(--body-font);
-      font-size: 15.5px;
-      color: #333;
-      line-height: 1.75;
-      max-width: 860px;
-      margin: 0 auto;
+      font-size: 14px;
+      color: #3a3a4a;
+      line-height: 1.8;
+      max-width: 820px;
+      margin: 10px auto 0;
       font-weight: 500;
     }
 
@@ -4228,17 +4329,20 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       transition: color 0.3s ease;
     }
 
-    /* Bottom Section Layout */
+    /* ═══════════════════════════════════════════════════
+       FOOTER — PREMIUM SIGNATORY & VERIFICATION
+       ═══════════════════════════════════════════════════ */
     .footer {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
       z-index: 2;
       position: relative;
+      margin-top: auto;
     }
 
     .signatory-block {
-      width: 250px;
+      width: 200px;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -4246,67 +4350,73 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     .signature-container {
-      height: 60px;
+      height: 52px;
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
-    /* Handwritten signature image displaying K. Rohini nicely overlayed */
     .signature-img {
-      max-width: 150px;
-      max-height: 60px;
+      max-width: 140px;
+      max-height: 52px;
       object-fit: contain;
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
     }
 
     .sign-line {
-      border-top: 1.5px solid var(--border-inner-color);
+      border-top: 1px solid var(--border-inner-color);
       width: 100%;
       height: 1px;
+      opacity: 0.7;
     }
 
     .sign-name {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       color: var(--border-outer-color);
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
       transition: color 0.3s ease;
     }
 
     .sign-designation {
-      font-size: 9px;
-      color: #666;
-      margin-top: 2px;
+      font-size: 8.5px;
+      color: #777;
+      margin-top: 1px;
       font-weight: 500;
+      letter-spacing: 0.5px;
     }
 
     .sign-title {
       font-family: var(--title-font);
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--border-inner-color);
-      margin-top: 6px;
-      letter-spacing: 1.5px;
+      margin-top: 4px;
+      letter-spacing: 2px;
       transition: color 0.3s ease;
     }
 
+    /* ═══════════════════════════════════════════════════
+       PREMIUM EMBOSSED SEAL BLOCK
+       ═══════════════════════════════════════════════════ */
     .seal-block {
-      width: 140px;
+      width: 130px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin-bottom: -10px;
+      margin-bottom: -8px;
+      /* Note: drop-shadow removed — html2canvas cannot handle CSS filter on SVG elements */
     }
 
     .verification-block {
       display: flex;
-      align-items: center;
-      gap: 15px;
+      align-items: flex-end;
+      gap: 12px;
       width: auto;
     }
 
@@ -4316,25 +4426,26 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     }
 
     .verif-label {
-      font-size: 8px;
+      font-size: 7.5px;
       font-weight: 700;
       color: var(--border-outer-color);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 4px;
+      letter-spacing: 1.5px;
+      margin-bottom: 2px;
+      opacity: 0.7;
       transition: color 0.3s ease;
     }
 
     .verif-link {
-      font-size: 8px;
-      color: #666;
+      font-size: 7.5px;
+      color: #777;
       text-decoration: none;
       word-break: break-all;
-      font-family: monospace;
+      font-family: 'Montserrat', sans-serif;
       font-weight: 500;
       line-height: 1.3;
       display: block;
-      max-width: 150px;
+      max-width: 140px;
     }
 
     .verif-link:hover {
@@ -4343,10 +4454,12 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .qrcode-container {
       background: white;
-      padding: 6px;
-      border: 1px solid rgba(10, 25, 47, 0.12);
-      border-radius: 4px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      padding: 5px;
+      border: 1px solid rgba(201,162,39,0.35);
+      border-radius: 3px;
+      box-shadow:
+        0 2px 8px rgba(11,31,77,0.08),
+        0 0 0 1px rgba(201,162,39,0.12);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -4581,6 +4694,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     <!-- Borders -->
     <div class="border-outer"></div>
     <div class="border-inner"></div>
+    <div class="border-accent"></div>
     
     <!-- Corner Decorative Lines -->
     <div class="corner-dec corner-tl"></div>
@@ -4618,16 +4732,20 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       <div class="cert-id">ID: ${formattedData.certificate_no}</div>
       
       <div class="header-branding">
-        <!-- Render your corporate Aadhira Tree logo via sprite -->
+        <!-- AADHIRA Tree Logo — premium large -->
         <div class="logo-sprite logo-aadhira"></div>
-        <div class="company-subtitle">AADHIRA TRAINING AND PLACEMENT SOLUTIONS - CHENNAI</div>
+        <!-- AADHIRA main brand name -->
+        <div class="company-name">AADHIRA</div>
+        <div class="company-subtitle">Training and Placement Solutions &ndash; Chennai</div>
+        <!-- Gold decorative brand divider -->
+        <div class="brand-divider">✦</div>
         
         <!-- Accreditation badges horizontally aligned -->
         <div class="accreditations">
-          <img src="/ministry-of-micro-small-and-medium-enterprises-logo-png.png" class="logo-msme" title="MSME Certified" alt="MSME Logo">
-          <div class="logo-sprite logo-iso" title="ISO 9001:2015 Certified"></div>
-          <div class="logo-sprite logo-arms" title="International Standards Certified"></div>
-          <div class="logo-sprite logo-uk" title="Euro UK Accreditation Licensed"></div>
+          <img src="${msmeB64}" class="logo-msme" title="MSME Certified" alt="MSME Logo">
+          <img src="${isoB64}" class="logo-iso" title="ISO Certified" alt="ISO Logo">
+          <img src="${armsB64}" class="logo-arms" title="International Standards Certified" alt="Arms Logo">
+          <img src="${ukB64}" class="logo-uk" title="Euro UK Accreditation Licensed" alt="UK Logo">
         </div>
       </div>
 
@@ -4667,6 +4785,8 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     <!-- Main Content Area -->
     <div class="content">
+      <!-- Premium gold ornamental rule above title -->
+      <div class="gold-rule"></div>
       <h1 class="title">CERTIFICATE OF ${formattedData.certificate_type}</h1>
       <p class="subtitle">This certificate is proudly awarded to</p>
       
@@ -4701,7 +4821,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       <div class="signatory-block">
         <div class="signature-container">
           <!-- Render your brand's handwritten signature image -->
-          <img src="/signature.png" class="signature-img" alt="Signature of K. Rohini">
+          <img src="${sigB64}" class="signature-img" alt="Signature of K. Rohini">
         </div>
         <div class="sign-line"></div>
       </div>
@@ -4928,15 +5048,21 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       // Wait 150ms for browser to complete reflowing layout before taking snapshot
       setTimeout(function() {
         html2canvas(container, {
-          scale: 2,           // 2x DPI for high-quality rendering with optimized file size
-          useCORS: true,      // Enable cross-origin resource sharing for fonts and external images
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
           logging: false,
+          imageTimeout: 0,
           scrollY: 0,
           scrollX: 0,
           width: 1122,
           height: 793,
           windowWidth: 1122,
-          windowHeight: 793
+          windowHeight: 793,
+          ignoreElements: function(el) {
+            // Skip watermark (large background-image pattern causes createPattern 0x0 crash)
+            return el.classList && el.classList.contains('watermark');
+          }
         }).then(canvas => {
           // Use JPEG with 0.8 quality to keep the PDF file size small (under 4MB) while maintaining sharpness
           const imgData = canvas.toDataURL('image/jpeg', 0.8);
