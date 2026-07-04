@@ -3534,7 +3534,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       --gold-light: #E8C547;
       --gold-dark: #9A7A1A;
       --accent: #E07A5F;
-      --paper: #FEFEFE;
+      --paper: radial-gradient(circle, #FFFFFF 60%, #FFFDF0 100%);
       --title-font: 'Cinzel', serif;
       --body-font: 'Montserrat', sans-serif;
       --recipient-font: 'Playfair Display', serif;
@@ -3558,7 +3558,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       --gold: #008891;
       --gold-light: #438a5e;
       --accent: #005f73;
-      --paper: #F5F7FA;
+      --paper: radial-gradient(circle, #FFFFFF 60%, #EEF2F6 100%);
       --title-font: 'Playfair Display', serif;
       --body-font: 'Montserrat', sans-serif;
       --recipient-font: 'Alex Brush', cursive;
@@ -3582,7 +3582,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       --gold: #C5A880;
       --gold-light: #D4AF37;
       --accent: #B33939;
-      --paper: #FCF8F2;
+      --paper: radial-gradient(circle, #FFFFFF 60%, #FAF4EB 100%);
       --title-font: 'Cinzel', serif;
       --body-font: 'Montserrat', sans-serif;
       --recipient-font: 'Great Vibes', cursive;
@@ -3606,7 +3606,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       --gold: #D4AF37;
       --gold-light: #F3E5AB;
       --accent: #2D5A27;
-      --paper: #FAF9F6;
+      --paper: radial-gradient(circle, #FFFFFF 60%, #F4F9F5 100%);
       --title-font: 'Playfair Display', serif;
       --body-font: 'Montserrat', sans-serif;
       --recipient-font: 'Mrs Saint Delafield', cursive;
@@ -3630,7 +3630,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       --gold: #A29BFE;
       --gold-light: #D6A2E8;
       --accent: #6C5CE7;
-      --paper: #F8F9FC;
+      --paper: radial-gradient(circle, #FFFFFF 60%, #FAF4FC 100%);
       --title-font: 'Cinzel', serif;
       --body-font: 'Montserrat', sans-serif;
       --recipient-font: 'Great Vibes', cursive;
@@ -4106,7 +4106,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       align-items: center;
       text-align: center;
       gap: 0;
-      margin-top: -4px;
+      margin-top: 25px;
     }
 
     /* Brand Logo & Accreditations Sprites */
@@ -4763,34 +4763,100 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
       <!-- Gold Medal Ribbon -->
       <div class="medal-container">
-        <svg viewBox="0 0 120 180" width="75" height="110">
+        <svg viewBox="0 0 120 180" width="80" height="120" style="filter: drop-shadow(0 4px 10px rgba(0,0,0,0.18));">
           <defs>
-            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="var(--medal-grad-1)"/>
-              <stop offset="30%" stop-color="var(--medal-grad-2)"/>
-              <stop offset="70%" stop-color="var(--medal-grad-3)"/>
-              <stop offset="100%" stop-color="var(--medal-grad-4)"/>
+            <!-- 3D Gold Gradient for Medal Body -->
+            <linearGradient id="goldMedalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFE07D"/>
+              <stop offset="25%" stop-color="#D4AF37"/>
+              <stop offset="50%" stop-color="#AA7C11"/>
+              <stop offset="75%" stop-color="#D4AF37"/>
+              <stop offset="100%" stop-color="#FDF0A6"/>
             </linearGradient>
-            <linearGradient id="ribbonGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="var(--ribbon-grad-1)"/>
-              <stop offset="100%" stop-color="var(--ribbon-grad-2)"/>
+            
+            <!-- Shading Gradients for 3D Star facets -->
+            <linearGradient id="starLight" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFF5C3"/>
+              <stop offset="100%" stop-color="#E5C058"/>
             </linearGradient>
-            <linearGradient id="ribbonGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="var(--ribbon-accent-1)"/>
-              <stop offset="100%" stop-color="var(--ribbon-accent-2)"/>
+            <linearGradient id="starDark" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#AA7C11"/>
+              <stop offset="100%" stop-color="#7B5600"/>
+            </linearGradient>
+
+            <linearGradient id="blueRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#0F2B5C"/>
+              <stop offset="50%" stop-color="#1E4485"/>
+              <stop offset="100%" stop-color="#0B1F4D"/>
+            </linearGradient>
+            <linearGradient id="goldRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#AA7C11"/>
+              <stop offset="50%" stop-color="#FFE07D"/>
+              <stop offset="100%" stop-color="#805C00"/>
             </linearGradient>
           </defs>
-          <!-- Ribbons -->
-          <path d="M38 70 L20 160 L50 145 L62 160 L45 70" fill="url(#ribbonGrad1)"/>
-          <path d="M82 70 L100 160 L70 145 L58 160 L75 70" fill="url(#ribbonGrad1)"/>
-          <path d="M48 70 L53 160 L65 145 L77 160 L72 70" fill="url(#ribbonGrad2)" opacity="0.95"/>
-          <!-- Medal Outer -->
-          <circle cx="60" cy="60" r="40" fill="url(#goldGrad)" stroke="#92400E" stroke-width="2.5" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.15))"/>
-          <!-- Medal Ridges -->
-          <circle cx="60" cy="60" r="33" fill="none" stroke="#FEF3C7" stroke-width="1.5" stroke-dasharray="2 1.5"/>
-          <!-- Medal Emblem -->
-          <polygon points="60,35 66,50 82,50 69,60 74,76 60,66 46,76 51,60 38,50 54,50" fill="#FFF" opacity="0.95"/>
-          <circle cx="60" cy="60" r="14" fill="none" stroke="#D97706" stroke-width="1.2"/>
+
+          <!-- Left Ribbon -->
+          <path d="M40 60 L18 155 L38 143 L50 155 L48 60 Z" fill="url(#blueRibbon)"/>
+          <path d="M40 60 L18 155 L23 151 L43 60 Z" fill="url(#goldRibbon)" opacity="0.8"/>
+
+          <!-- Right Ribbon -->
+          <path d="M80 60 L102 155 L82 143 L70 155 L72 60 Z" fill="url(#blueRibbon)"/>
+          <path d="M80 60 L102 155 L97 151 L77 60 Z" fill="url(#goldRibbon)" opacity="0.8"/>
+
+          <!-- Center Ribbon -->
+          <path d="M52 60 L52 165 L60 157 L68 165 L68 60 Z" fill="url(#goldRibbon)"/>
+
+          <!-- Medal Outer Scalloped Ring -->
+          <circle cx="60" cy="60" r="41" fill="url(#goldMedalGrad)" stroke="#805C00" stroke-width="0.8"/>
+          
+          <!-- Outer Ridges -->
+          <circle cx="60" cy="60" r="39.5" fill="none" stroke="#FFE07D" stroke-width="1.5" stroke-dasharray="1.5, 1.5"/>
+          <circle cx="60" cy="60" r="38" fill="none" stroke="#805C00" stroke-width="0.8"/>
+
+          <!-- Inner Ring -->
+          <circle cx="60" cy="60" r="34" fill="#92400E" opacity="0.1"/>
+          <circle cx="60" cy="60" r="32" fill="none" stroke="#FFE07D" stroke-width="1" stroke-dasharray="2, 2"/>
+          <circle cx="60" cy="60" r="30" fill="none" stroke="#805C00" stroke-width="0.8"/>
+
+          <!-- Central Laurel Leaves / Wreath -->
+          <g stroke="url(#starLight)" stroke-width="0.6" fill="none" opacity="0.7">
+            <!-- Left Wreath branch -->
+            <path d="M40 60 C40 45 48 38 60 38" />
+            <path d="M42 55 C37 53 37 47 42 49" fill="url(#goldMedalGrad)"/>
+            <path d="M45 47 C40 45 41 39 46 41" fill="url(#goldMedalGrad)"/>
+            <path d="M51 41 C47 38 49 33 53 36" fill="url(#goldMedalGrad)"/>
+            
+            <!-- Right Wreath branch -->
+            <path d="M80 60 C80 45 72 38 60 38" />
+            <path d="M78 55 C83 53 83 47 78 49" fill="url(#goldMedalGrad)"/>
+            <path d="M75 47 C80 45 79 39 74 41" fill="url(#goldMedalGrad)"/>
+            <path d="M69 41 C73 38 71 33 67 36" fill="url(#goldMedalGrad)"/>
+          </g>
+
+          <!-- 3D Star facets -->
+          <!-- Top point -->
+          <polygon points="60,60 60,37 66,51.5" fill="url(#starLight)"/>
+          <polygon points="60,60 60,37 54,51.5" fill="url(#starDark)"/>
+          
+          <!-- Right point -->
+          <polygon points="60,60 82,53.8 69.5,63.5" fill="url(#starLight)"/>
+          <polygon points="60,60 82,53.8 66,51.5" fill="url(#starDark)"/>
+          
+          <!-- Bottom Right point -->
+          <polygon points="60,60 73.5,78 60,69" fill="url(#starLight)"/>
+          <polygon points="60,60 73.5,78 69.5,63.5" fill="url(#starDark)"/>
+          
+          <!-- Bottom Left point -->
+          <polygon points="60,60 46.5,78 50.5,63.5" fill="url(#starLight)"/>
+          <polygon points="60,60 46.5,78 60,69" fill="url(#starDark)"/>
+          
+          <!-- Left point -->
+          <polygon points="60,60 38,53.8 54,51.5" fill="url(#starLight)"/>
+          <polygon points="60,60 38,53.8 50.5,63.5" fill="url(#starDark)"/>
+
+          <!-- Center mini ring -->
+          <circle cx="60" cy="60" r="3" fill="none" stroke="#FFE07D" stroke-width="0.5"/>
         </svg>
       </div>
     </div>
