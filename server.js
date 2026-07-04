@@ -4767,32 +4767,32 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           <defs>
             <!-- 3D Gold Gradient for Medal Body -->
             <linearGradient id="goldMedalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#FFE07D"/>
-              <stop offset="25%" stop-color="#D4AF37"/>
-              <stop offset="50%" stop-color="#AA7C11"/>
-              <stop offset="75%" stop-color="#D4AF37"/>
-              <stop offset="100%" stop-color="#FDF0A6"/>
+              <stop offset="0%" stop-color="var(--medal-grad-1)"/>
+              <stop offset="25%" stop-color="var(--medal-grad-2)"/>
+              <stop offset="50%" stop-color="var(--medal-grad-3)"/>
+              <stop offset="75%" stop-color="var(--medal-grad-2)"/>
+              <stop offset="100%" stop-color="var(--medal-grad-1)"/>
             </linearGradient>
             
             <!-- Shading Gradients for 3D Star facets -->
             <linearGradient id="starLight" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#FFF5C3"/>
-              <stop offset="100%" stop-color="#E5C058"/>
+              <stop offset="0%" stop-color="var(--ribbon-accent-2)"/>
+              <stop offset="100%" stop-color="var(--medal-grad-1)"/>
             </linearGradient>
             <linearGradient id="starDark" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#AA7C11"/>
-              <stop offset="100%" stop-color="#7B5600"/>
+              <stop offset="0%" stop-color="var(--medal-grad-3)"/>
+              <stop offset="100%" stop-color="var(--medal-grad-4)"/>
             </linearGradient>
 
             <linearGradient id="blueRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#0F2B5C"/>
-              <stop offset="50%" stop-color="#1E4485"/>
-              <stop offset="100%" stop-color="#0B1F4D"/>
+              <stop offset="0%" stop-color="var(--ribbon-grad-1)"/>
+              <stop offset="50%" stop-color="var(--ribbon-grad-2)"/>
+              <stop offset="100%" stop-color="var(--ribbon-grad-1)"/>
             </linearGradient>
             <linearGradient id="goldRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#AA7C11"/>
-              <stop offset="50%" stop-color="#FFE07D"/>
-              <stop offset="100%" stop-color="#805C00"/>
+              <stop offset="0%" stop-color="var(--ribbon-accent-1)"/>
+              <stop offset="50%" stop-color="var(--ribbon-accent-2)"/>
+              <stop offset="100%" stop-color="var(--ribbon-accent-1)"/>
             </linearGradient>
           </defs>
 
@@ -4808,16 +4808,16 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           <path d="M52 60 L52 165 L60 157 L68 165 L68 60 Z" fill="url(#goldRibbon)"/>
 
           <!-- Medal Outer Scalloped Ring -->
-          <circle cx="60" cy="60" r="41" fill="url(#goldMedalGrad)" stroke="#805C00" stroke-width="0.8"/>
+          <circle cx="60" cy="60" r="41" fill="url(#goldMedalGrad)" stroke="var(--medal-grad-4)" stroke-width="0.8"/>
           
           <!-- Outer Ridges -->
-          <circle cx="60" cy="60" r="39.5" fill="none" stroke="#FFE07D" stroke-width="1.5" stroke-dasharray="1.5, 1.5"/>
-          <circle cx="60" cy="60" r="38" fill="none" stroke="#805C00" stroke-width="0.8"/>
+          <circle cx="60" cy="60" r="39.5" fill="none" stroke="var(--ribbon-accent-2)" stroke-width="1.5" stroke-dasharray="1.5, 1.5"/>
+          <circle cx="60" cy="60" r="38" fill="none" stroke="var(--medal-grad-4)" stroke-width="0.8"/>
 
           <!-- Inner Ring -->
           <circle cx="60" cy="60" r="34" fill="#92400E" opacity="0.1"/>
-          <circle cx="60" cy="60" r="32" fill="none" stroke="#FFE07D" stroke-width="1" stroke-dasharray="2, 2"/>
-          <circle cx="60" cy="60" r="30" fill="none" stroke="#805C00" stroke-width="0.8"/>
+          <circle cx="60" cy="60" r="32" fill="none" stroke="var(--ribbon-accent-2)" stroke-width="1" stroke-dasharray="2, 2"/>
+          <circle cx="60" cy="60" r="30" fill="none" stroke="var(--medal-grad-4)" stroke-width="0.8"/>
 
           <!-- Central Laurel Leaves / Wreath -->
           <g stroke="url(#starLight)" stroke-width="0.6" fill="none" opacity="0.7">
@@ -4856,7 +4856,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           <polygon points="60,60 38,53.8 50.5,63.5" fill="url(#starDark)"/>
 
           <!-- Center mini ring -->
-          <circle cx="60" cy="60" r="3" fill="none" stroke="#FFE07D" stroke-width="0.5"/>
+          <circle cx="60" cy="60" r="3" fill="none" stroke="var(--ribbon-accent-2)" stroke-width="0.5"/>
         </svg>
       </div>
     </div>
