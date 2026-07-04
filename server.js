@@ -4086,17 +4086,21 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
     .cert-id {
       position: absolute;
-      left: 0;
-      top: 0;
+      left: 210px;
+      top: -5px;
       font-size: 9.5px;
       color: var(--border-outer-color);
       font-weight: 700;
       letter-spacing: 1.8px;
       text-transform: uppercase;
-      background: transparent;
-      padding: 4px 0;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      padding: 6px 14px;
       border-left: 3px solid var(--border-inner-color);
-      padding-left: 8px;
+      border-radius: 0 4px 4px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      z-index: 10;
       transition: all 0.3s ease;
     }
 
@@ -4201,9 +4205,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     .medal-container {
       position: absolute;
       right: 0;
-      top: -15px;
-      width: 110px;
-      height: 155px;
+      top: -18px;
+      width: 117px;
+      height: 173px;
       display: flex;
       justify-content: flex-end;
     }
@@ -4352,6 +4356,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       display: flex;
       flex-direction: column;
       align-items: center;
+      margin-left: 20px;
     }
 
     .signature-container {
@@ -4703,38 +4708,27 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     <!-- Certificate Container -->
     <div class="cert-container ${certThemeClass}">
     
+    <!-- Modern Dynamic Diagonal Capsule Background Patterns (Combined Full-Screen SVG) -->
+    <svg class="modern-patterns" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;" viewBox="0 0 1122 793">
+      <!-- Top-Left Corner Pattern -->
+      <line x1="0" y1="100" x2="100" y2="0" stroke="var(--border-outer-color)" stroke-width="32" stroke-linecap="round" />
+      <line x1="0" y1="160" x2="160" y2="0" stroke="var(--border-inner-color)" stroke-width="20" stroke-linecap="round" />
+      <line x1="0" y1="220" x2="220" y2="0" stroke="var(--border-outer-color)" stroke-width="24" stroke-linecap="round" />
+      <line x1="40" y1="260" x2="260" y2="40" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" />
+      <circle cx="110" cy="180" r="10" fill="var(--border-inner-color)" />
+      
+      <!-- Bottom-Right Corner Pattern -->
+      <line x1="1042" y1="793" x2="1122" y2="713" stroke="var(--border-outer-color)" stroke-width="32" stroke-linecap="round" />
+      <line x1="992" y1="793" x2="1122" y2="663" stroke="var(--border-inner-color)" stroke-width="20" stroke-linecap="round" />
+      <line x1="942" y1="793" x2="1122" y2="613" stroke="var(--border-outer-color)" stroke-width="24" stroke-linecap="round" />
+      <line x1="972" y1="743" x2="1102" y2="613" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" />
+      <circle cx="1032" cy="653" r="10" fill="var(--border-inner-color)" />
+    </svg>
+    
     <!-- Borders -->
     <div class="border-outer"></div>
     <div class="border-inner"></div>
     <div class="border-accent"></div>
-    
-    <!-- Corner Decorative Lines -->
-    <div class="corner-dec corner-tl"></div>
-    <div class="corner-dec corner-tr"></div>
-    <div class="corner-dec corner-bl"></div>
-    <div class="corner-dec corner-br"></div>
-    
-    <!-- Corner Decorative SVGs -->
-    <svg class="corner-svg svg-tl" viewBox="0 0 100 100">
-      <path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z" />
-      <circle cx="15" cy="15" r="4" />
-      <path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/>
-    </svg>
-    <svg class="corner-svg svg-tr" viewBox="0 0 100 100">
-      <path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z" />
-      <circle cx="15" cy="15" r="4" />
-      <path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/>
-    </svg>
-    <svg class="corner-svg svg-bl" viewBox="0 0 100 100">
-      <path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z" />
-      <circle cx="15" cy="15" r="4" />
-      <path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/>
-    </svg>
-    <svg class="corner-svg svg-br" viewBox="0 0 100 100">
-      <path d="M 0,0 L 50,0 C 20,10 10,20 0,50 Z" />
-      <circle cx="15" cy="15" r="4" />
-      <path d="M 5,5 Q 25,5 25,25 Q 5,25 5,5" fill="none" stroke="currentColor" stroke-width="1.5"/>
-    </svg>
 
     <!-- Watermark Background using corporate Aadhira Tree logo -->
     <div class="watermark"><img src="${logosB64}" class="watermark-img" alt="Aadhira Logo Watermark"></div>
@@ -4763,7 +4757,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
 
       <!-- Gold Medal Ribbon -->
       <div class="medal-container">
-        <svg viewBox="0 0 120 180" width="105" height="150" style="filter: drop-shadow(0 4px 10px rgba(0,0,0,0.18));">
+        <svg viewBox="0 0 120 180" width="112" height="168" style="filter: drop-shadow(0 4px 10px rgba(0,0,0,0.18));">
           <defs>
             <!-- 3D Gold Gradient for Medal Body -->
             <linearGradient id="goldMedalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -4933,7 +4927,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       </div>
 
       <!-- Verification QR & Details -->
-      <div class="verification-block" style="display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: auto;">
+      <div class="verification-block" style="display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: auto; margin-right: 50px;">
         <div class="verification-details" style="display: flex; flex-direction: column; justify-content: center; text-align: left; font-family: 'Montserrat', sans-serif; font-weight: 700; color: #718096; gap: 2px;">
           <div style="font-size: 8.5px; letter-spacing: 0.5px; color: #718096; line-height: 1.2;">PLACE:</div>
           <div style="font-size: 9px; letter-spacing: 0.5px; color: #4A5568; margin-bottom: 2px; line-height: 1.2;">${formattedData.place.toUpperCase()}</div>
