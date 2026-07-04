@@ -693,6 +693,9 @@ const adminHtml = (certificates, message = '', error = '') => {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   
   <style>
     :root {
@@ -2131,6 +2134,14 @@ const adminHtml = (certificates, message = '', error = '') => {
                 <option value="purple">Purple Royal</option>
               </select>
             </div>
+            
+            <div style="margin-bottom: 18px; padding: 16px 20px; background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.3); border-radius: 10px;">
+              <label style="font-size: 13px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 10px;"><i class="bi bi-envelope-fill" style="color:var(--gold-light);"></i> Send Certificate via Email?</label>
+              <select id="batchSendEmail" class="form-control" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 14px; font-size: 13.5px; width: 100%;">
+                <option value="yes">Yes, generate and send email</option>
+                <option value="no">No, only generate and store (do not send email)</option>
+              </select>
+            </div>
             <button onclick="executeImport()" class="submit-btn" id="executeImportBtn" style="background: linear-gradient(135deg, var(--success), #047857); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);"><i class="bi bi-check-circle-fill"></i> Import & Save to Database</button>
 
             <!-- Progress Section -->
@@ -2717,6 +2728,7 @@ const adminHtml = (certificates, message = '', error = '') => {
 
     // CSV/Excel Import script logic
     let parsedRows = [];
+    let generatedCertsForBulk = [];
 
     const fileInputEl = document.getElementById('importFileInput');
     if (fileInputEl) {
@@ -2843,7 +2855,8 @@ const adminHtml = (certificates, message = '', error = '') => {
       };
       reader.readAsArrayBuffer(file);
     }
-       async function executeImport() {
+
+    async function executeImport() {
       if (parsedRows.length === 0) return;
 
       const btn = document.getElementById('executeImportBtn');
@@ -2863,6 +2876,7 @@ const adminHtml = (certificates, message = '', error = '') => {
 
       const total = parsedRows.length;
       let added = 0, skipped = 0, failed = 0;
+      generatedCertsForBulk = [];
 
       try {
         const seqRes  = await fetch('/api/last-cert-id');
@@ -2871,18 +2885,19 @@ const adminHtml = (certificates, message = '', error = '') => {
         const currentYear = new Date().getFullYear();
         const batchTemplate = document.getElementById('batchTemplate').value || 'classic';
         const batchType     = document.getElementById('batchCertType').value || 'INTERNSHIP';
+        const batchSendEmail = document.getElementById('batchSendEmail').value === 'yes';
 
         for (let i = 0; i < parsedRows.length; i++) {
           const row = parsedRows[i];
           const certIndex    = String(lastIndex + 1 + i).padStart(6, '0');
-          const certificate_no = \`ATPS/\${currentYear}/\${certIndex}\`;
+          const certificate_no = "ATPS/" + currentYear + "/" + certIndex;
 
           const cert = {
             certificate_no,
             student_name:          row.student_name,
             email:                 row.email,
             college_name:          row.college_name,
-            degree:                row.year ? \`\${row.degree} - \${row.year}\` : row.degree,
+            degree:                row.year ? row.degree + " - " + row.year : row.degree,
             domain:                row.domain,
             duration:              row.duration,
             start_date:            row.start_date,
@@ -2892,19 +2907,20 @@ const adminHtml = (certificates, message = '', error = '') => {
             authorized_signatory:  'K. Rohini',
             signatory_designation: 'Founder',
             certificate_type:      batchType,
-            template:              batchTemplate
+            template:              batchTemplate,
+            send_email:            batchSendEmail
           };
 
           // Update progress bar & label
           const pct = Math.round(((i) / total) * 100);
           progressBar.style.width = pct + '%';
-          progressLabel.textContent = \`\${i + 1} / \${total}\`;
+          progressLabel.textContent = (i + 1) + " / " + total;
 
           // Append live row log
           const logLine = document.createElement('div');
-          logLine.id = \`logrow-\${i}\`;
+          logLine.id = 'logrow-' + i;
           logLine.style.cssText = 'color: rgba(255,255,255,0.5); padding: 2px 0;';
-          logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ⏳ \${escapeHtml(row.student_name)} — <em>\${escapeHtml(certificate_no)}</em> ...\`;
+          logLine.innerHTML = '<span style="color:var(--gold-light);">[' + (i+1) + '/' + total + ']</span> ⏳ ' + escapeHtml(row.student_name) + ' — <em>' + escapeHtml(certificate_no) + '</em> ...';
           rowLog.appendChild(logLine);
           rowLog.scrollTop = rowLog.scrollHeight;
 
@@ -2918,21 +2934,31 @@ const adminHtml = (certificates, message = '', error = '') => {
 
             if (res.ok && result.added > 0) {
               added++;
+              generatedCertsForBulk.push({
+                certificate_no: certificate_no,
+                student_name: row.student_name,
+                template: batchTemplate
+              });
               logLine.style.color = '#34d399';
-              logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ✅ \${escapeHtml(row.student_name)} — <em>\${escapeHtml(certificate_no)}</em> <span style="color:#6ee7b7;">Saved</span>\`;
+              logLine.innerHTML = '<span style="color:var(--gold-light);">[' + (i+1) + '/' + total + ']</span> ✅ ' + escapeHtml(row.student_name) + ' — <em>' + escapeHtml(certificate_no) + '</em> <span style="color:#6ee7b7;">Saved</span>';
             } else if (result.skipped > 0) {
               skipped++;
+              generatedCertsForBulk.push({
+                certificate_no: certificate_no,
+                student_name: row.student_name,
+                template: batchTemplate
+              });
               logLine.style.color = '#fbbf24';
-              logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ⚠️ \${escapeHtml(row.student_name)} — <span style="color:#fde68a;">Skipped (duplicate)</span>\`;
+              logLine.innerHTML = '<span style="color:var(--gold-light);">[' + (i+1) + '/' + total + ']</span> ⚠️ ' + escapeHtml(row.student_name) + ' — <span style="color:#fde68a;">Skipped (duplicate)</span>';
             } else {
               failed++;
               logLine.style.color = '#f87171';
-              logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ❌ \${escapeHtml(row.student_name)} — <span style="color:#fca5a5;">Error: \${escapeHtml((result.errors && result.errors[0]?.error) || 'Unknown')}</span>\`;
+              logLine.innerHTML = '<span style="color:var(--gold-light);">[' + (i+1) + '/' + total + ']</span> ❌ ' + escapeHtml(row.student_name) + ' — <span style="color:#fca5a5;">Error: ' + escapeHtml((result.errors && result.errors[0]?.error) || 'Unknown') + '</span>';
             }
           } catch(rowErr) {
             failed++;
             logLine.style.color = '#f87171';
-            logLine.innerHTML = \`<span style="color:var(--gold-light);">[\${i+1}/\${total}]</span> ❌ \${escapeHtml(row.student_name)} — <span style="color:#fca5a5;">Network error</span>\`;
+            logLine.innerHTML = '<span style="color:var(--gold-light);">[' + (i+1) + '/' + total + ']</span> ❌ ' + escapeHtml(row.student_name) + ' — <span style="color:#fca5a5;">Network error</span>';
           }
 
           rowLog.scrollTop = rowLog.scrollHeight;
@@ -2940,32 +2966,191 @@ const adminHtml = (certificates, message = '', error = '') => {
 
         // Final 100%
         progressBar.style.width = '100%';
-        progressLabel.textContent = \`\${total} / \${total} — Done\`;
+        progressLabel.textContent = total + " / " + total + " — Done";
 
         // Summary
         summaryBox.style.display = 'block';
+        let statusHtml = '';
         if (failed === 0) {
-          summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35); color: #6ee7b7;';
-          summaryBox.innerHTML = \`<i class="bi bi-check-circle-fill"></i> Import complete! <strong>\${added}</strong> saved, <strong>\${skipped}</strong> skipped (duplicates). Redirecting...\`;
-          setTimeout(() => {
-            const msg = \`Successfully imported \${added} certificate(s). \${skipped} skipped.\`;
-            window.location.href = '/admin?msg=' + encodeURIComponent(msg);
-          }, 2200);
+          summaryBox.style.cssText = 'display:block; margin-top:14px; padding:18px; border-radius:10px; font-size:13.5px; font-weight:600; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35); color: #6ee7b7;';
+          statusHtml = '<div style="margin-bottom: 12px;"><i class="bi bi-check-circle-fill"></i> Import complete! <strong>' + added + '</strong> saved, <strong>' + skipped + '</strong> skipped.</div>';
         } else {
-          summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5;';
-          summaryBox.innerHTML = \`<i class="bi bi-exclamation-triangle-fill"></i> Done with errors — <strong>\${added}</strong> saved, <strong>\${skipped}</strong> skipped, <strong>\${failed}</strong> failed. Check the log above.\`;
-          btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
+          summaryBox.style.cssText = 'display:block; margin-top:14px; padding:18px; border-radius:10px; font-size:13.5px; font-weight:600; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5;';
+          statusHtml = '<div style="margin-bottom: 12px;"><i class="bi bi-exclamation-triangle-fill"></i> Done with errors — <strong>' + added + '</strong> saved, <strong>' + skipped + '</strong> skipped, <strong>' + failed + '</strong> failed. Check the log above.</div>';
         }
+
+        if (generatedCertsForBulk.length > 0) {
+          statusHtml += 
+            '<div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">' +
+              '<div style="font-size: 12px; color: #94a3b8; font-weight: 500;">Batch Certificate Actions:</div>' +
+              '<div style="display: flex; gap: 10px; flex-wrap: wrap;">' +
+                '<button onclick="downloadBulkCertificates(\'pdf\')" class="btn" style="background: linear-gradient(135deg, #d97706, #b45309); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">' +
+                  '<i class="bi bi-file-earmark-pdf-fill"></i> Download All (One PDF)' +
+                '</button>' +
+                '<button onclick="downloadBulkCertificates(\'zip\')" class="btn" style="background: linear-gradient(135deg, #2563eb, #1e3a8a); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">' +
+                  '<i class="bi bi-file-zip-fill"></i> Download All as ZIP' +
+                '</button>' +
+                '<button onclick="window.location.href=\'/admin?msg=\' + encodeURIComponent(\'Successfully processed \' + generatedCertsForBulk.length + \' certificate(s).\')" class="btn" style="background: #e2e8f0; color: #0f172a; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">' +
+                  'Finish & Close' +
+                '</button>' +
+              '</div>' +
+            '</div>';
+        } else {
+          statusHtml += 
+            '<div style="margin-top: 15px;">' +
+              '<button onclick="window.location.href=\'/admin\'" class="btn" style="background: #e2e8f0; color: #0f172a; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">' +
+                'Go Back' +
+              '</button>' +
+            '</div>';
+        }
+        summaryBox.innerHTML = statusHtml;
 
       } catch(err) {
         console.error(err);
         summaryBox.style.display = 'block';
         summaryBox.style.cssText = 'display:block; margin-top:14px; padding:14px 18px; border-radius:10px; font-size:13px; font-weight:600; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #fca5a5;';
-        summaryBox.innerHTML = \`<i class="bi bi-x-circle-fill"></i> Import failed: \${escapeHtml(err.message)}\`;
+        summaryBox.innerHTML = '<i class="bi bi-x-circle-fill"></i> Import failed: ' + escapeHtml(err.message);
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import & Save to Database';
       }
+    }
+
+    async function downloadBulkCertificates(type) {
+      if (generatedCertsForBulk.length === 0) {
+        alert('No certificates available to download.');
+        return;
+      }
+
+      showLoading('Preparing bulk download... Please wait.');
+
+      // Ensure JSZip is loaded if type is zip
+      if (type === 'zip' && typeof JSZip === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        document.head.appendChild(script);
+        await new Promise(r => script.onload = r);
+      }
+
+      const totalCerts = generatedCertsForBulk.length;
+      let pdf = null;
+      let zip = null;
+      if (type === 'zip') {
+        zip = new JSZip();
+      }
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '-9999px';
+      iframe.style.width = '1200px';
+      iframe.style.height = '900px';
+      document.body.appendChild(iframe);
+
+      for (let i = 0; i < totalCerts; i++) {
+        const c = generatedCertsForBulk[i];
+        const certNoEncoded = c.certificate_no.replace(/\//g, '_');
+        showLoading("Generating PDF " + (i + 1) + " of " + totalCerts + "<br><span style='font-size:13px;color:var(--gold-light);'>[" + escapeHtml(c.student_name) + "]</span>");
+
+        iframe.src = "/certificate/" + certNoEncoded + "?previewTheme=" + c.template;
+
+        await new Promise((resolve) => {
+          const handler = () => {
+            iframe.removeEventListener('load', handler);
+            resolve();
+          };
+          iframe.addEventListener('load', handler);
+        });
+
+        // Small wait for rendering elements inside iframe
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const wrapper = iframeDoc.querySelector('.cert-wrapper');
+        const container = iframeDoc.querySelector('.cert-container');
+
+        if (!container) {
+          console.error("Certificate container not found for " + c.certificate_no);
+          continue;
+        }
+
+        const prevBodyStyle = iframeDoc.body.getAttribute('style') || '';
+        const prevWrapperStyle = wrapper ? (wrapper.getAttribute('style') || '') : '';
+        const prevContainerStyle = container.getAttribute('style') || '';
+
+        iframeDoc.body.style.width = '1122px';
+        iframeDoc.body.style.minWidth = '1122px';
+        iframeDoc.body.style.overflow = 'visible';
+        iframeDoc.body.style.position = 'relative';
+
+        if (wrapper) {
+          wrapper.setAttribute('style', 'display: block !important; width: 1122px !important; min-width: 1122px !important; margin: 0 !important; padding: 0 !important; overflow: visible !important;');
+        }
+
+        container.setAttribute('style', 'width: 1122px !important; height: 793px !important; transform: none !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; position: relative !important; left: 0 !important; top: 0 !important; float: left !important;');
+
+        const canvas = await html2canvas(container, {
+          scale: 1.5,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+          scrollX: 0,
+          width: 1122,
+          height: 793,
+          windowWidth: 1122,
+          windowHeight: 793
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+
+        // Restore iframe styles
+        if (wrapper) {
+          wrapper.setAttribute('style', prevWrapperStyle);
+        }
+        container.setAttribute('style', prevContainerStyle);
+        iframeDoc.body.setAttribute('style', prevBodyStyle);
+
+        if (type === 'pdf') {
+          if (!pdf) {
+            const { jsPDF } = window.jspdf || window;
+            pdf = new jsPDF({
+              orientation: 'landscape',
+              unit: 'px',
+              format: [1122, 793]
+            });
+          } else {
+            pdf.addPage();
+          }
+          pdf.addImage(imgData, 'JPEG', 0, 0, 1122, 793);
+        } else if (type === 'zip') {
+          const { jsPDF } = window.jspdf || window;
+          const singlePdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [1122, 793]
+          });
+          singlePdf.addImage(imgData, 'JPEG', 0, 0, 1122, 793);
+          const pdfBlob = singlePdf.output('blob');
+          const cleanName = c.student_name.replace(/[^a-zA-Z0-9]/g, '_');
+          const cleanCertNo = c.certificate_no.replace(/[^a-zA-Z0-9]/g, '_');
+          zip.file("Certificate_" + cleanName + "_" + cleanCertNo + ".pdf", pdfBlob);
+        }
+      }
+
+      document.body.removeChild(iframe);
+
+      if (type === 'pdf') {
+        showLoading('Finalizing PDF compilation...');
+        pdf.save("Bulk_Certificates_" + new Date().toISOString().split('T')[0] + ".pdf");
+      } else if (type === 'zip') {
+        showLoading('Zipping files... Please wait.');
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = "Bulk_Certificates_" + new Date().toISOString().split('T')[0] + ".zip";
+        link.click();
+      }
+
+      hideLoading();
     }
 
     function downloadSampleSpreadsheet() {
@@ -2993,7 +3178,7 @@ const adminHtml = (certificates, message = '', error = '') => {
     function showLoading(text) {
       const overlay = document.getElementById('loadingOverlay');
       if (text) {
-        document.getElementById('loadingText').innerText = text;
+        document.getElementById('loadingText').innerHTML = text.replace(/\n/g, '<br>');
       }
       overlay.style.display = 'flex';
     }
@@ -4857,7 +5042,7 @@ fastify.post('/api/store-certificates', { preHandler: checkAuth }, async (reques
         logDbMessage(`Successfully stored certificate ${c.certificate_no} for ${c.student_name}.`);
 
         // Trigger background email delivery asynchronously
-        if (c.email && c.email.trim() !== '') {
+        if (c.send_email !== false && c.email && c.email.trim() !== '') {
           const emailVal = c.email.trim();
           const nameVal = c.student_name;
           const certNoVal = c.certificate_no;
