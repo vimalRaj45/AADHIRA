@@ -3887,7 +3887,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      padding: 52px 48px 32px 48px;
+      padding: 65px 60px 45px 60px;
       transition: background 0.3s ease;
     }
 
@@ -4055,7 +4055,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       height: 380px;
       pointer-events: none;
       z-index: 1;
-      opacity: 0.07;
+      opacity: 0.12;
       background-image: url('${logosB64}');
       background-size: 1520px 380px;
       background-position: 0px 0px;
@@ -4132,7 +4132,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       font-size: 42px;
       font-weight: 900;
       color: var(--border-outer-color);
-      letter-spacing: 10px;
+      letter-spacing: 4px;
       line-height: 1;
       margin-bottom: 4px;
       text-shadow:
@@ -4642,7 +4642,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         height: 210mm !important;
         max-height: 210mm !important;
         margin: 0 !important;
-        padding: 40px !important;
+        padding: 65px 60px 45px 60px !important;
         transform: none !important;
         transform-origin: unset !important;
         box-shadow: none !important;
@@ -4664,6 +4664,13 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
   </style>
 </head>
 <body>
+  <!-- PDF Loading Overlay -->
+  <div id="pdf-loading-overlay" class="no-print" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 41, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; color: #fff; font-family: 'Montserrat', sans-serif;">
+    <div style="border: 4px solid rgba(255, 255, 255, 0.1); border-top: 4px solid #D97706; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+    <div style="font-size: 18px; font-weight: 700; letter-spacing: 1px; color: #fff; text-transform: uppercase; margin-bottom: 8px;">Generating Certificate PDF</div>
+    <div style="font-size: 13px; color: #94A3B8; letter-spacing: 0.5px;">Capturing layout & rendering print document...</div>
+  </div>
+
   <!-- Elegant Abstract Background Blobs -->
   <div class="bg-shape shape-1 no-print"></div>
   <div class="bg-shape shape-2 no-print"></div>
@@ -4796,19 +4803,19 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
         ${(() => {
           const ct = formattedData.certificate_type;
           if (ct === 'INTERNSHIP') {
-            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for successfully completing the <span class="highlight">${formattedData.domain} Internship Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+            return `from <span class="highlight">${formattedData.college_name}</span>, pursuing <span class="highlight">${formattedData.degree}</span>, for successfully completing the <span class="highlight">${formattedData.domain} Internship Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai, for a duration of <span class="highlight">${formattedData.duration}</span>, from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.`;
           } else if (ct === 'COMPLETION') {
-            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for successfully completing the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+            return `from <span class="highlight">${formattedData.college_name}</span>, pursuing <span class="highlight">${formattedData.degree}</span>, for successfully completing the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai, for a duration of <span class="highlight">${formattedData.duration}</span>, from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.`;
           } else if (ct === 'PARTICIPATION') {
-            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for actively participating in the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+            return `from <span class="highlight">${formattedData.college_name}</span>, pursuing <span class="highlight">${formattedData.degree}</span>, for actively participating in the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai, from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.`;
           } else if (ct === 'TRAINING') {
-            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for successfully completing the <span class="highlight">${formattedData.domain} Training Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+            return `from <span class="highlight">${formattedData.college_name}</span>, pursuing <span class="highlight">${formattedData.degree}</span>, for successfully completing the <span class="highlight">${formattedData.domain} Training Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai, for a duration of <span class="highlight">${formattedData.duration}</span>, from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.`;
           } else if (ct === 'APPRECIATION') {
-            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , in recognition of outstanding contribution and dedication in the field of <span class="highlight">${formattedData.domain}</span> at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+            return `from <span class="highlight">${formattedData.college_name}</span>, pursuing <span class="highlight">${formattedData.degree}</span>, in recognition of outstanding contribution and dedication in the field of <span class="highlight">${formattedData.domain}</span> at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai, from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.`;
           } else if (ct === 'EXCELLENCE') {
-            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , in recognition of exceptional performance and excellence demonstrated in the <span class="highlight">${formattedData.domain} Program</span> at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+            return `from <span class="highlight">${formattedData.college_name}</span>, pursuing <span class="highlight">${formattedData.degree}</span>, in recognition of exceptional performance and excellence demonstrated in the <span class="highlight">${formattedData.domain} Program</span> at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai, from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.`;
           } else {
-            return `from <span class="highlight">${formattedData.college_name}</span> , pursuing <span class="highlight">${formattedData.degree}</span> , for successfully completing the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai , for a duration of <span class="highlight">${formattedData.duration}</span> , from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span> .`;
+            return `from <span class="highlight">${formattedData.college_name}</span>, pursuing <span class="highlight">${formattedData.degree}</span>, for successfully completing the <span class="highlight">${formattedData.domain} Program</span> conducted at <span class="highlight">Aadhira Training and Placement Solutions (ATPS)</span>, Chennai, for a duration of <span class="highlight">${formattedData.duration}</span>, from <span class="highlight">${formattedData.start_date_formatted}</span> to <span class="highlight">${formattedData.end_date_formatted}</span>.`;
           }
         })()}
       </p>
@@ -5009,6 +5016,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       btn.disabled = true;
       btn.innerHTML = '<span style="border: 2px solid white; border-top: 2px solid transparent; border-radius: 50%; width: 14px; height: 14px; display: inline-block; animation: spin 1s linear infinite; margin-right: 8px; vertical-align: middle;"></span> Generating PDF...';
 
+      const overlay = document.getElementById('pdf-loading-overlay');
+      if (overlay) overlay.style.display = 'flex';
+
       // Inject spinner animation stylesheet dynamically if not already present
       if (!document.getElementById('pdf-spinner-style')) {
         const style = document.createElement('style');
@@ -5088,6 +5098,9 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       }, 150);
 
       function restoreStyles() {
+        const overlay = document.getElementById('pdf-loading-overlay');
+        if (overlay) overlay.style.display = 'none';
+
         // Restore viewport meta
         if (metaViewport && originalViewport) {
           metaViewport.setAttribute('content', originalViewport);
