@@ -4056,10 +4056,17 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
       pointer-events: none;
       z-index: 1;
       opacity: 0.12;
-      background-image: url('${logosB64}');
-      background-size: 1520px 380px;
-      background-position: 0px 0px;
-      background-repeat: no-repeat;
+      overflow: hidden;
+    }
+
+    .watermark-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1520px;
+      height: 380px;
+      max-width: none;
+      max-height: none;
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
     }
@@ -4732,7 +4739,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
     </svg>
 
     <!-- Watermark Background using corporate Aadhira Tree logo -->
-    <div class="watermark"></div>
+    <div class="watermark"><img src="${logosB64}" class="watermark-img" alt="Aadhira Logo Watermark"></div>
 
     <!-- Top Header -->
     <div class="header">
@@ -5068,11 +5075,7 @@ fastify.get('/certificate/:certNoEncoded', async (request, reply) => {
           width: 1122,
           height: 793,
           windowWidth: 1122,
-          windowHeight: 793,
-          ignoreElements: function(el) {
-            // Skip watermark (large background-image pattern causes createPattern 0x0 crash)
-            return el.classList && el.classList.contains('watermark');
-          }
+          windowHeight: 793
         }).then(canvas => {
           // Use JPEG with 0.8 quality to keep the PDF file size small (under 4MB) while maintaining sharpness
           const imgData = canvas.toDataURL('image/jpeg', 0.8);
