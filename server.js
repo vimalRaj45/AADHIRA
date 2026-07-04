@@ -64,10 +64,40 @@ function formatCertDate(dateInput) {
 
 function parseDateForDb(dateStr) {
   if (!dateStr) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return dateStr;
+  const str = String(dateStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
   }
-  const cleanStr = String(dateStr).replace(/(\d+)(st|nd|rd|th)/i, '$1');
+  
+  // Try parsing DD-MM-YYYY or DD/MM/YYYY
+  const matchDMY = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (matchDMY) {
+    const dVal = parseInt(matchDMY[1], 10);
+    const mVal = parseInt(matchDMY[2], 10);
+    const yVal = parseInt(matchDMY[3], 10);
+    if (mVal >= 1 && mVal <= 12 && dVal >= 1 && dVal <= 31) {
+      const dd = String(dVal).padStart(2, '0');
+      const mm = String(mVal).padStart(2, '0');
+      const yyyy = String(yVal);
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Try parsing YYYY/MM/DD or YYYY-M-D with single digit parts
+  const matchYMD = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (matchYMD) {
+    const yVal = parseInt(matchYMD[1], 10);
+    const mVal = parseInt(matchYMD[2], 10);
+    const dVal = parseInt(matchYMD[3], 10);
+    if (mVal >= 1 && mVal <= 12 && dVal >= 1 && dVal <= 31) {
+      const dd = String(dVal).padStart(2, '0');
+      const mm = String(mVal).padStart(2, '0');
+      const yyyy = String(yVal);
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  const cleanStr = str.replace(/(\d+)(st|nd|rd|th)/i, '$1');
   const d = new Date(cleanStr);
   if (!isNaN(d.getTime())) {
     const yyyy = d.getFullYear();
@@ -2984,13 +3014,13 @@ const adminHtml = (certificates, message = '', error = '') => {
             '<div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">' +
               '<div style="font-size: 12px; color: #94a3b8; font-weight: 500;">Batch Certificate Actions:</div>' +
               '<div style="display: flex; gap: 10px; flex-wrap: wrap;">' +
-                '<button onclick="downloadBulkCertificates(\'pdf\')" class="btn" style="background: linear-gradient(135deg, #d97706, #b45309); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">' +
+                '<button onclick="downloadBulkCertificates(\\'pdf\\')" class="btn" style="background: linear-gradient(135deg, #d97706, #b45309); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">' +
                   '<i class="bi bi-file-earmark-pdf-fill"></i> Download All (One PDF)' +
                 '</button>' +
-                '<button onclick="downloadBulkCertificates(\'zip\')" class="btn" style="background: linear-gradient(135deg, #2563eb, #1e3a8a); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">' +
+                '<button onclick="downloadBulkCertificates(\\'zip\\')" class="btn" style="background: linear-gradient(135deg, #2563eb, #1e3a8a); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">' +
                   '<i class="bi bi-file-zip-fill"></i> Download All as ZIP' +
                 '</button>' +
-                '<button onclick="window.location.href=\'/admin?msg=\' + encodeURIComponent(\'Successfully processed \' + generatedCertsForBulk.length + \' certificate(s).\')" class="btn" style="background: #e2e8f0; color: #0f172a; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">' +
+                '<button onclick="finishImport()" class="btn" style="background: #e2e8f0; color: #0f172a; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">' +
                   'Finish & Close' +
                 '</button>' +
               '</div>' +
@@ -2998,7 +3028,7 @@ const adminHtml = (certificates, message = '', error = '') => {
         } else {
           statusHtml += 
             '<div style="margin-top: 15px;">' +
-              '<button onclick="window.location.href=\'/admin\'" class="btn" style="background: #e2e8f0; color: #0f172a; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">' +
+              '<button onclick="goBackToAdmin()" class="btn" style="background: #e2e8f0; color: #0f172a; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">' +
                 'Go Back' +
               '</button>' +
             '</div>';
@@ -3048,7 +3078,7 @@ const adminHtml = (certificates, message = '', error = '') => {
 
       for (let i = 0; i < totalCerts; i++) {
         const c = generatedCertsForBulk[i];
-        const certNoEncoded = c.certificate_no.replace(/\//g, '_');
+        const certNoEncoded = c.certificate_no.replace(/\\//g, '_');
         showLoading("Generating PDF " + (i + 1) + " of " + totalCerts + "<br><span style='font-size:13px;color:var(--gold-light);'>[" + escapeHtml(c.student_name) + "]</span>");
 
         iframe.src = "/certificate/" + certNoEncoded + "?previewTheme=" + c.template;
@@ -3153,6 +3183,14 @@ const adminHtml = (certificates, message = '', error = '') => {
       hideLoading();
     }
 
+    function finishImport() {
+      window.location.href = '/admin?msg=' + encodeURIComponent('Successfully processed ' + generatedCertsForBulk.length + ' certificate(s).');
+    }
+
+    function goBackToAdmin() {
+      window.location.href = '/admin';
+    }
+
     function downloadSampleSpreadsheet() {
       const headers = ['Student Name', 'Email Address', 'College Name', 'Degree', 'Year', 'Domain', 'Duration', 'Start Date', 'End Date', 'Place'];
       const sampleRow = ['John Doe', 'student@example.com', 'Aadhira College of Engineering', 'B.E (CSE)', 'III Year', 'Web Development', '30 Days', '2026-06-01', '2026-06-30', 'Chennai'];
@@ -3178,7 +3216,7 @@ const adminHtml = (certificates, message = '', error = '') => {
     function showLoading(text) {
       const overlay = document.getElementById('loadingOverlay');
       if (text) {
-        document.getElementById('loadingText').innerHTML = text.replace(/\n/g, '<br>');
+        document.getElementById('loadingText').innerHTML = text.replace(/\\n/g, '<br>');
       }
       overlay.style.display = 'flex';
     }
