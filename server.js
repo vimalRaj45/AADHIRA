@@ -71,7 +71,7 @@ fastify.get('/logout', async (request, reply) => {
   return reply.redirect('/login');
 });
 
-const connectionString = 'postgresql://neondb_owner:npg_c3Z8hrJHXGIR@ep-old-shape-apznh8mh-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const connectionString = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_KEF8nZuB1Qrd@ep-bitter-block-axcvayix-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 
 function getOrdinalNum(n) {
   return n + (n > 0 ? ['th', 'st', 'nd', 'rd'][(n > 3 && n < 21) || n % 10 > 3 ? 0 : n % 10] : '');
@@ -178,6 +178,157 @@ function getSheetsClient() {
 // -------------------------------------------------------------
 // HTML PAGES - High-End Premium Styling
 // -------------------------------------------------------------
+
+// Component: Branded Page Loading Screen (preloader)
+// Shown while the page paints, fades out on window load, and re-appears
+// whenever the visitor navigates away (link click / form submit).
+const pageLoaderHtml = (label = 'Loading') => `
+  <style>
+    #pageLoader {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      background: radial-gradient(circle at center, #172A45 0%, #0b1329 100%);
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+    #pageLoader.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #pageLoader .pl-mark {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #pageLoader .pl-ring {
+      position: absolute;
+      inset: 0;
+      border: 3px solid rgba(217, 119, 6, 0.18);
+      border-top-color: #F5A623;
+      border-radius: 50%;
+      animation: plSpin 1s linear infinite;
+    }
+    #pageLoader .pl-ring.pl-ring-inner {
+      inset: 12px;
+      border-width: 2px;
+      border-top-color: rgba(245, 166, 35, 0.45);
+      animation: plSpin 1.6s linear infinite reverse;
+    }
+    #pageLoader .pl-logo {
+      width: 40px;
+      height: 40px;
+      fill: #F5A623;
+      animation: plPulse 1.8s ease-in-out infinite;
+    }
+    #pageLoader .pl-brand {
+      font-family: 'Cinzel', Georgia, serif;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 4px;
+      color: #FFFFFF;
+      text-transform: uppercase;
+    }
+    #pageLoader .pl-label {
+      font-family: 'Montserrat', 'Outfit', sans-serif;
+      font-size: 11.5px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #8892B0;
+    }
+    #pageLoader .pl-label::after {
+      content: '';
+      animation: plDots 1.4s steps(4, end) infinite;
+    }
+    #pageLoader .pl-bar {
+      width: 190px;
+      height: 3px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+    #pageLoader .pl-bar span {
+      display: block;
+      width: 40%;
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #D97706, #F5A623);
+      animation: plSlide 1.2s ease-in-out infinite;
+    }
+    @keyframes plSpin { to { transform: rotate(360deg); } }
+    @keyframes plPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.9); } }
+    @keyframes plSlide { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+    @keyframes plDots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+    @media (prefers-reduced-motion: reduce) {
+      #pageLoader .pl-ring, #pageLoader .pl-logo, #pageLoader .pl-bar span { animation: none; }
+    }
+  </style>
+  <div id="pageLoader" role="status" aria-live="polite" aria-label="${label}">
+    <div class="pl-mark">
+      <div class="pl-ring"></div>
+      <div class="pl-ring pl-ring-inner"></div>
+      <svg class="pl-logo" viewBox="0 0 120 120" aria-hidden="true">
+        <path d="M60 22 L92 88 L75 88 L60 54 L45 88 L28 88 Z" fill="currentColor" style="fill:#F5A623"/>
+      </svg>
+    </div>
+    <div class="pl-brand">ATPS</div>
+    <div class="pl-bar"><span></span></div>
+    <div class="pl-label">${label}</div>
+  </div>
+  <script>
+    (function () {
+      var loader = document.getElementById('pageLoader');
+      if (!loader) return;
+      var hideTimer = null;
+
+      function hideLoaderScreen() {
+        clearTimeout(hideTimer);
+        loader.classList.add('is-hidden');
+      }
+      function showLoaderScreen() {
+        clearTimeout(hideTimer);
+        loader.classList.remove('is-hidden');
+        // Safety net: never trap the user behind the overlay
+        hideTimer = setTimeout(hideLoaderScreen, 15000);
+      }
+
+      if (document.readyState === 'complete') {
+        setTimeout(hideLoaderScreen, 250);
+      } else {
+        window.addEventListener('load', function () { setTimeout(hideLoaderScreen, 250); });
+      }
+
+      // Re-show during navigation for a smooth transition
+      document.addEventListener('submit', function (e) {
+        if (e.target && e.target.tagName === 'FORM' && !e.target.hasAttribute('data-no-loader')) {
+          showLoaderScreen();
+        }
+      }, true);
+
+      document.addEventListener('click', function (e) {
+        var link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+        if (!link) return;
+        var href = link.getAttribute('href') || '';
+        if (link.target === '_blank' || link.hasAttribute('download') || link.hasAttribute('data-no-loader')) return;
+        if (href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+        showLoaderScreen();
+      }, true);
+
+      // Restored from browser back/forward cache
+      window.addEventListener('pageshow', function (e) { if (e.persisted) hideLoaderScreen(); });
+      window.addEventListener('pagehide', hideLoaderScreen);
+    })();
+  </script>`;
 
 // Page: Landing Search Portal
 const indexHtml = () => `<!DOCTYPE html>

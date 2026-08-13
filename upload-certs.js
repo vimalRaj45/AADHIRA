@@ -3,7 +3,7 @@ const path = require('path');
 const { Client } = require('pg');
 const { google } = require('googleapis');
 
-const connectionString = 'postgresql://neondb_owner:npg_c3Z8hrJHXGIR@ep-old-shape-apznh8mh-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const connectionString = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_KEF8nZuB1Qrd@ep-bitter-block-axcvayix-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'adhira-496911-6d81bb10334b.json');
 const DRIVE_FOLDER_ID = '1llnhxEsbxMx7r_H58BrWMRRdEqrp7-M1';
 
